@@ -1,9 +1,11 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import os
 from datetime import datetime
 
-app = Flask(__name__)
+# static_folder trỏ đúng thư mục chứa index.html dù chạy bằng gunicorn hay python
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__, static_folder=BASE_DIR, static_url_path="")
 CORS(app)
 
 API_SECRET = os.environ.get("API_SECRET", "gloryvn_secret_2024")
@@ -40,9 +42,7 @@ def verify_token(req):
 # ── Trang web ─────────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
-    path = os.path.join(os.path.dirname(__file__), "index.html")
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
+    return send_from_directory(BASE_DIR, "index.html")
 
 # ── GET /api/config  (ESP.cs poll mỗi 2s) ────────────────────────────────────
 @app.route("/api/config", methods=["GET"])
