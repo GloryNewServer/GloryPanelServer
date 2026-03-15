@@ -3,537 +3,491 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Glory VN Panel</title>
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <title>Glory VN — ESP Control Panel</title>
   <style>
     :root {
-      --bg:       #07090e;
-      --surface:  #0c0f18;
-      --surface2: #101520;
-      --border:   #1a2235;
-      --border2:  #1f2d42;
-      --cyan:     #00e5ff;
-      --cyan-dim: #00a8c4;
-      --cglow:    rgba(0,229,255,0.15);
-      --green:    #00ff88;
-      --red:      #ff3d5a;
-      --yellow:   #ffc940;
-      --text:     #c5d6ea;
-      --muted:    #3d5068;
-      --mono:     'Share Tech Mono', monospace;
-      --ui:       'Rajdhani', sans-serif;
+      --bg: #0d0d14;
+      --card: #13131f;
+      --border: #2a2040;
+      --purple: #9d7ae5;
+      --purple-light: #b196f7;
+      --purple-dark: #6b4faa;
+      --green: #4ade80;
+      --red: #f87171;
+      --text: #e2d9f3;
+      --muted: #7a6f96;
+      --radius: 12px;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: var(--ui);
+      font-family: 'Segoe UI', system-ui, sans-serif;
       min-height: 100vh;
-      padding-bottom: 60px;
-      background-image: repeating-linear-gradient(
-        0deg, transparent, transparent 3px,
-        rgba(0,229,255,0.012) 3px, rgba(0,229,255,0.012) 4px
-      );
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
     }
 
-    /* ── Header ─────────────────────────────────────────────────────────── */
-    .hdr {
-      position: sticky; top: 0; z-index: 20;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 22px;
-      background: rgba(7,9,14,0.94);
-      border-bottom: 1px solid var(--border);
-      backdrop-filter: blur(10px);
+    header {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
     }
-    .brand { display: flex; align-items: center; gap: 10px; }
-    .brand-icon {
-      width: 30px; height: 30px;
-      border: 1.5px solid var(--cyan);
-      border-radius: 7px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 15px;
-      box-shadow: 0 0 12px var(--cglow), inset 0 0 8px rgba(0,229,255,0.06);
-    }
-    .brand-name {
-      font-family: var(--mono);
-      font-size: 0.95rem;
-      color: var(--cyan);
-      letter-spacing: 3px;
-      text-shadow: 0 0 14px rgba(0,229,255,0.5);
-    }
-    .hdr-right { display: flex; align-items: center; gap: 10px; }
-    .srv-label { font-family: var(--mono); font-size: 0.65rem; color: var(--muted); letter-spacing: 1.5px; }
-    .srv-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--muted);
-      transition: background .3s, box-shadow .3s;
-    }
-    .srv-dot.on {
-      background: var(--green);
-      box-shadow: 0 0 10px var(--green);
-      animation: pdot 2.2s ease-in-out infinite;
-    }
-    @keyframes pdot { 0%,100%{box-shadow:0 0 6px var(--green)} 50%{box-shadow:0 0 16px var(--green)} }
 
-    /* ── Token bar ──────────────────────────────────────────────────────── */
-    .tok-bar {
-      display: flex; gap: 8px;
-      padding: 11px 22px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-    }
-    .tok-bar input {
-      flex: 1;
-      background: var(--bg);
-      border: 1px solid var(--border2);
-      border-radius: 6px;
-      color: var(--text);
-      padding: 7px 12px;
-      font-family: var(--mono);
-      font-size: 0.78rem;
-      outline: none;
-      transition: border-color .2s;
-    }
-    .tok-bar input:focus { border-color: var(--cyan-dim); }
-    .tok-bar button {
-      background: transparent;
-      border: 1px solid var(--cyan-dim);
-      border-radius: 6px;
-      color: var(--cyan);
-      padding: 7px 18px;
-      font-family: var(--ui);
-      font-size: 0.85rem;
+    header h1 {
+      font-size: 1.5rem;
       font-weight: 700;
-      letter-spacing: 0.8px;
-      cursor: pointer;
-      transition: background .2s, box-shadow .2s;
-    }
-    .tok-bar button:hover { background: var(--cglow); box-shadow: 0 0 10px var(--cglow); }
-
-    /* ── Main ───────────────────────────────────────────────────────────── */
-    .main {
-      max-width: 580px;
-      margin: 0 auto;
-      padding: 18px 14px;
-      display: flex; flex-direction: column; gap: 14px;
+      background: linear-gradient(135deg, var(--purple-light), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 0.5px;
     }
 
-    /* ── Status card ────────────────────────────────────────────────────── */
-    .status-card {
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      border-radius: 10px;
-      padding: 16px 20px;
-      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    #status-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.3s;
+      box-shadow: 0 0 0 0 transparent;
     }
-    .st-left { display: flex; flex-direction: column; gap: 5px; }
-    .st-lbl {
-      font-family: var(--mono); font-size: 0.62rem;
-      color: var(--muted); letter-spacing: 2px; text-transform: uppercase;
+    #status-dot.online {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
     }
-    .st-val {
-      font-family: var(--mono); font-size: 1.05rem; font-weight: 600;
-      transition: color .3s, text-shadow .3s;
-    }
-    .st-val.waiting    { color: var(--muted); }
-    .st-val.connecting { color: var(--yellow); text-shadow: 0 0 10px rgba(255,201,64,.4); }
-    .st-val.connected  { color: var(--green);  text-shadow: 0 0 12px rgba(0,255,136,.4);
-      animation: glow-text 2s ease-in-out infinite; }
-    .st-val.error      { color: var(--red);    text-shadow: 0 0 10px rgba(255,61,90,.4); }
-    @keyframes glow-text { 0%,100%{text-shadow:0 0 8px rgba(0,255,136,.3)} 50%{text-shadow:0 0 18px rgba(0,255,136,.6)} }
-    .st-msg {
-      font-family: var(--mono); font-size: 0.7rem; color: var(--muted); min-height: 14px;
-    }
-    .st-msg.err { color: var(--red); }
-    .st-seen {
-      font-family: var(--mono); font-size: 0.62rem; color: var(--muted);
-    }
-    .st-right { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
 
-    .btn-conn, .btn-disc {
-      border-radius: 7px; padding: 9px 22px;
-      font-family: var(--ui); font-size: 0.92rem; font-weight: 700;
-      letter-spacing: 1px; cursor: pointer;
-      transition: opacity .2s, box-shadow .2s, transform .1s;
-      border: none;
-    }
-    .btn-conn:active, .btn-disc:active { transform: scale(.97); }
-    .btn-conn {
-      background: var(--cyan); color: #000;
-      box-shadow: 0 0 16px rgba(0,229,255,.3);
-    }
-    .btn-conn:hover:not(:disabled) { box-shadow: 0 0 26px rgba(0,229,255,.55); }
-    .btn-conn:disabled { opacity: .3; cursor: not-allowed; }
-    .btn-disc {
-      background: transparent;
-      border: 1px solid var(--red) !important;
-      color: var(--red);
-    }
-    .btn-disc:hover:not(:disabled) { background: rgba(255,61,90,.08); }
-    .btn-disc:disabled { opacity: .25; cursor: not-allowed; }
-
-    /* ── Section label ──────────────────────────────────────────────────── */
-    .sec-lbl {
-      display: flex; align-items: center; gap: 10px;
-      font-family: var(--mono); font-size: 0.62rem;
-      color: var(--muted); letter-spacing: 2px; text-transform: uppercase;
-    }
-    .sec-lbl::after { content:""; flex:1; height:1px; background: var(--border); }
-
-    /* ── Feature card ───────────────────────────────────────────────────── */
-    .feat-card {
-      background: var(--surface);
+    /* Auth card */
+    #auth-card {
+      background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 100%;
+      max-width: 560px;
+      margin-bottom: 20px;
+    }
+    #auth-card label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    #auth-card .row {
+      display: flex;
+      gap: 10px;
+    }
+    #auth-card input {
+      flex: 1;
+      background: #1a1a2e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 9px 13px;
+      font-size: 0.92rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #auth-card input:focus { border-color: var(--purple); }
+    #auth-card button {
+      background: var(--purple);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    #auth-card button:hover { background: var(--purple-light); }
+
+    /* Main panel */
+    #panel {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      padding: 0 4px;
+      margin-top: 6px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       overflow: hidden;
     }
-    .tog-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 18px;
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
       border-bottom: 1px solid var(--border);
-      transition: background .15s;
+      transition: background 0.15s;
+      cursor: pointer;
+      user-select: none;
     }
-    .tog-row:last-child { border-bottom: none; }
-    .tog-row:hover { background: rgba(0,229,255,0.03); }
-    .feat-info { display: flex; flex-direction: column; gap: 2px; }
-    .feat-name { font-size: 0.93rem; font-weight: 600; color: var(--text); letter-spacing: .3px; }
-    .feat-desc { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-row:hover { background: rgba(157,122,229,0.06); }
+
+    .toggle-info { display: flex; flex-direction: column; gap: 2px; }
+    .toggle-name {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .toggle-desc {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
 
     /* Toggle switch */
-    .sw { position: relative; width: 44px; height: 24px; flex-shrink: 0; cursor: pointer; }
-    .sw input { opacity: 0; width: 0; height: 0; }
-    .sw-track {
-      position: absolute; inset: 0;
-      background: var(--border2); border-radius: 24px;
-      transition: background .25s, box-shadow .25s;
+    .switch {
+      position: relative;
+      width: 46px; height: 26px;
+      flex-shrink: 0;
     }
-    .sw-track::before {
-      content: ""; position: absolute;
-      width: 18px; height: 18px; left: 3px; top: 3px;
-      background: var(--muted); border-radius: 50%;
-      transition: transform .25s, background .25s;
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #2a2040;
+      border-radius: 26px;
+      transition: background 0.3s;
     }
-    input:checked ~ .sw-track,
-    input:checked + .sw-track {
-      background: rgba(0,229,255,.12);
-      border: 1px solid var(--cyan-dim);
-      box-shadow: 0 0 10px var(--cglow);
+    .slider:before {
+      content: "";
+      position: absolute;
+      width: 20px; height: 20px;
+      left: 3px; bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
     }
-    input:checked ~ .sw-track::before,
-    input:checked + .sw-track::before {
-      transform: translateX(20px);
-      background: var(--cyan);
-    }
+    input:checked + .slider { background: var(--purple); }
+    input:checked + .slider:before { transform: translateX(20px); }
 
-    /* Select row */
-    .sel-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 18px;
+    /* linePosition select */
+    .select-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
     }
-    .sel-row select {
-      background: var(--surface2);
-      border: 1px solid var(--border2);
-      border-radius: 6px;
+    .select-row select {
+      background: #1a1a2e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
       color: var(--text);
       padding: 6px 12px;
-      font-family: var(--mono); font-size: 0.78rem;
-      outline: none; cursor: pointer;
-      transition: border-color .2s;
+      font-size: 0.88rem;
+      outline: none;
+      cursor: pointer;
     }
-    .sel-row select:focus { border-color: var(--cyan-dim); }
-    .sel-row select:disabled { opacity: .35; cursor: not-allowed; }
+    .select-row select:focus { border-color: var(--purple); }
 
     /* Last updated */
     #last-update {
-      font-family: var(--mono); font-size: 0.65rem;
-      color: var(--muted); text-align: center; letter-spacing: .5px;
-    }
-
-    /* Spinner */
-    .spinner {
-      width: 16px; height: 16px;
-      border: 2px solid var(--border2); border-top-color: var(--cyan);
-      border-radius: 50%;
-      animation: spin .7s linear infinite; display: inline-block;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #loading {
-      text-align: center; padding: 44px 0;
+      font-size: 0.75rem;
       color: var(--muted);
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
-      font-family: var(--mono); font-size: 0.78rem; letter-spacing: 1px;
+      text-align: center;
+      margin-top: 6px;
     }
 
     /* Toast */
     #toast {
-      position: fixed; bottom: 22px; right: 18px;
-      background: var(--surface2);
-      border: 1px solid var(--border2);
-      border-radius: 8px;
-      padding: 9px 16px;
-      font-family: var(--mono); font-size: 0.78rem;
-      color: var(--text); letter-spacing: .5px;
-      opacity: 0; transform: translateY(10px);
-      transition: opacity .25s, transform .25s;
-      pointer-events: none; z-index: 999;
+      position: fixed;
+      bottom: 28px; right: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-size: 0.85rem;
+      color: var(--text);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+      z-index: 999;
     }
     #toast.show { opacity: 1; transform: translateY(0); }
-    #toast.ok   { border-color: var(--green); color: var(--green); }
-    #toast.err  { border-color: var(--red);   color: var(--red); }
-    #toast.inf  { border-color: var(--cyan-dim); color: var(--cyan); }
+    #toast.success { border-color: var(--green); color: var(--green); }
+    #toast.error   { border-color: var(--red);   color: var(--red);   }
+
+    /* Loading spinner */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--purple);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #loading {
+      text-align: center;
+      padding: 40px 0;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-weight: 600;
+    }
+    .badge.on  { background: rgba(74,222,128,0.15); color: var(--green); }
+    .badge.off { background: rgba(248,113,113,0.12); color: var(--red); }
   </style>
 </head>
 <body>
 
-<!-- Header -->
-<div class="hdr">
-  <div class="brand">
-    <div class="brand-icon">⚡</div>
-    <span class="brand-name">GLORY_VN</span>
-  </div>
-  <div class="hdr-right">
-    <span class="srv-label">SERVER</span>
-    <div class="srv-dot" id="srv-dot"></div>
+<header>
+  <h1>⚡ Glory VN Panel</h1>
+  <div id="status-dot" title="Server status"></div>
+</header>
+
+<!-- Auth -->
+<div id="auth-card">
+  <label>API Secret Token</label>
+  <div class="row">
+    <input type="password" id="token-input" placeholder="Nhập secret token..." />
+    <button onclick="saveToken()">Lưu</button>
   </div>
 </div>
 
-<!-- Token -->
-<div class="tok-bar">
-  <input type="password" id="tok-input" placeholder="API Secret Token..." />
-  <button onclick="saveToken()">LƯU</button>
+<!-- Panel -->
+<div id="panel">
+  <div id="loading">
+    <div class="spinner"></div>
+    <span>Đang tải config...</span>
+  </div>
 </div>
 
-<!-- Main -->
-<div class="main">
-
-  <!-- Client status -->
-  <div class="status-card">
-    <div class="st-left">
-      <span class="st-lbl">CLIENT STATUS</span>
-      <span class="st-val waiting" id="st-val">WAITING</span>
-      <span class="st-msg" id="st-msg"></span>
-      <span class="st-seen" id="st-seen"></span>
-    </div>
-    <div class="st-right">
-      <button class="btn-conn" id="btn-conn" onclick="doConnect()">CONNECT</button>
-      <button class="btn-disc" id="btn-disc" onclick="doDisconnect()" disabled>DISCONNECT</button>
-    </div>
-  </div>
-
-  <!-- Features -->
-  <div id="panel">
-    <div id="loading">
-      <div class="spinner"></div>
-      <span>LOADING CONFIG...</span>
-    </div>
-  </div>
-
-  <div id="last-update"></div>
-</div>
+<div id="last-update"></div>
 <div id="toast"></div>
 
 <script>
   const FEATURES = [
     {
-      sec: "// AIM",
+      section: "🎯 Aim",
       items: [
-        { key: "AimbotNewEnabled", name: "AimBot",       desc: "// aimbot engine" },
+        { key: "AimbotNewEnabled", name: "AimBot Enable", desc: "Bật / tắt chức năng Aimbot" },
       ]
     },
     {
-      sec: "// ESP_VISUAL",
+      section: "👁️ ESP Visual",
       items: [
-        { key: "ESPLine",     name: "ESP Line",     desc: "// line to enemy" },
-        { key: "ESPBox2",     name: "ESP Box",      desc: "// bounding box" },
-        { key: "ESPWukong",   name: "ESP Wukong",   desc: "// wukong detection" },
-        { key: "ESPInfo",     name: "ESP Info",     desc: "// name + health" },
-        { key: "ESPSkeleton", name: "ESP Skeleton", desc: "// skeleton render" },
+        { key: "ESPLine",      name: "ESP Line",     desc: "Vẽ đường thẳng tới kẻ địch" },
+        { key: "ESPBox2",      name: "ESP Box",      desc: "Vẽ hộp 3D quanh kẻ địch" },
+        { key: "ESPWukong",    name: "ESP Wukong",   desc: "Hiện ESP cho dạng Wukong" },
+        { key: "ESPInfo",      name: "ESP INFO",     desc: "Hiển thị thông tin (tên, máu...)" },
+        { key: "ESPSkeleton",  name: "ESP Skeleton", desc: "Vẽ skeleton / xương kẻ địch" },
       ]
     },
     {
-      sec: "// MISC",
+      section: "⚙️ Misc ESP",
       items: [
-        { key: "ESPREFRESH", name: "ESP Refresh", desc: "// auto clear cache" },
-        { key: "FixEsp",     name: "ESP Fix",     desc: "// fix render glitch" },
+        { key: "ESPREFRESH",   name: "ESP Refresh",  desc: "Tự động refresh entity cache" },
+        { key: "FixEsp",       name: "ESP FIX",      desc: "Bật fix lỗi ESP" },
       ]
     }
   ];
 
-  let token  = localStorage.getItem("gv_tok") || "";
+  let token = localStorage.getItem("gloryvn_token") || "";
   let config = {};
-  document.getElementById("tok-input").value = token;
+  let pollTimer = null;
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  document.getElementById("token-input").value = token;
 
   function saveToken() {
-    token = document.getElementById("tok-input").value.trim();
-    localStorage.setItem("gv_tok", token);
-    toast("TOKEN SAVED ✓", "ok");
+    token = document.getElementById("token-input").value.trim();
+    localStorage.setItem("gloryvn_token", token);
+    showToast("Token đã lưu ✓", "success");
   }
 
-  // ── Poll ──────────────────────────────────────────────────────────────────
-  async function poll() {
+  // ── Fetch config ──────────────────────────────────────────────────────────
+  async function fetchConfig() {
     try {
-      const r = await fetch("/api/config");
-      if (!r.ok) throw 0;
-      config = await r.json();
-      document.getElementById("srv-dot").classList.add("on");
+      const res = await fetch("/api/config");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      config = await res.json();
+      document.getElementById("status-dot").classList.add("online");
       renderPanel();
-      renderStatus();
-      renderLastUpdated();
-    } catch {
-      document.getElementById("srv-dot").classList.remove("on");
+      updateLastUpdated();
+    } catch (e) {
+      document.getElementById("status-dot").classList.remove("online");
+      console.error("fetchConfig error:", e);
     }
-  }
-  poll();
-  setInterval(poll, 2500);
-
-  // ── Render status card ────────────────────────────────────────────────────
-  function renderStatus() {
-    const st   = config.client_status  || "waiting";
-    const msg  = config.client_message || "";
-    const seen = config.client_last_seen;
-
-    const stEl   = document.getElementById("st-val");
-    const msgEl  = document.getElementById("st-msg");
-    const seenEl = document.getElementById("st-seen");
-
-    stEl.className = "st-val " + st;
-    stEl.textContent = st.toUpperCase();
-
-    msgEl.textContent = msg;
-    msgEl.className = "st-msg" + (st === "error" ? " err" : "");
-
-    seenEl.textContent = seen
-      ? "last_seen › " + new Date(seen + "Z").toLocaleTimeString("vi-VN")
-      : "";
-
-    const isConn = st === "connected";
-    const isBusy = st === "connecting" || !!config.connect;
-    document.getElementById("btn-conn").disabled = isConn || isBusy;
-    document.getElementById("btn-disc").disabled = !isConn;
-  }
-
-  // ── CONNECT ───────────────────────────────────────────────────────────────
-  async function doConnect() {
-    document.getElementById("btn-conn").disabled = true;
-    await apiPost({ connect: true, disconnect: false });
-    toast("LỆNH CONNECT ĐÃ GỬI →", "inf");
-  }
-
-  // ── DISCONNECT ────────────────────────────────────────────────────────────
-  async function doDisconnect() {
-    await apiPost({ disconnect: true, connect: false });
-    toast("LỆNH DISCONNECT ĐÃ GỬI →", "inf");
   }
 
   // ── Toggle feature ────────────────────────────────────────────────────────
-  async function handleToggle(key, val) {
-    config[key] = val;
-    renderPanel();
-    const ok = await apiPost({ [key]: val });
-    if (ok) toast(key + (val ? ": ON ✓" : ": OFF ✓"), "ok");
-  }
-
-  async function handleLinePos(val) {
-    const ok = await apiPost({ linePosition: val });
-    if (ok) toast("linePosition: " + val, "ok");
-  }
-
-  // ── apiPost helper ────────────────────────────────────────────────────────
-  async function apiPost(body) {
+  async function sendToggle(key, value) {
     try {
-      const r = await fetch("/api/config", {
+      const body = {};
+      body[key] = value;
+      const res = await fetch("/api/config", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-API-Secret": token },
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Secret": token
+        },
         body: JSON.stringify(body)
       });
-      const d = await r.json();
-      if (!r.ok) { toast("LỖI: " + (d.error || r.status), "err"); return false; }
-      config = d.config;
+      const data = await res.json();
+      if (!res.ok) {
+        showToast("Lỗi: " + (data.error || res.status), "error");
+        // Revert
+        config[key] = !value;
+        renderPanel();
+        return;
+      }
+      config = data.config;
       renderPanel();
-      renderStatus();
-      renderLastUpdated();
-      return true;
-    } catch {
-      toast("NETWORK ERROR", "err");
-      return false;
+      updateLastUpdated();
+      showToast(`${key}: ${value ? "ON ✓" : "OFF ✓"}`, "success");
+    } catch (e) {
+      showToast("Kết nối thất bại!", "error");
     }
   }
 
-  // ── Render features panel ─────────────────────────────────────────────────
+  async function sendLinePosition(val) {
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Secret": token
+        },
+        body: JSON.stringify({ linePosition: val })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        config = data.config;
+        showToast("linePosition: " + val, "success");
+        updateLastUpdated();
+      } else {
+        showToast("Lỗi: " + (data.error || res.status), "error");
+      }
+    } catch (e) {
+      showToast("Kết nối thất bại!", "error");
+    }
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
   function renderPanel() {
     const panel = document.getElementById("panel");
     panel.innerHTML = "";
 
-    FEATURES.forEach(sec => {
-      const lbl = document.createElement("div");
-      lbl.className = "sec-lbl";
-      lbl.textContent = sec.sec;
-      panel.appendChild(lbl);
+    FEATURES.forEach(section => {
+      const sectionEl = document.createElement("div");
+      sectionEl.className = "section-label";
+      sectionEl.textContent = section.section;
+      panel.appendChild(sectionEl);
 
       const card = document.createElement("div");
-      card.className = "feat-card";
+      card.className = "card";
 
-      sec.items.forEach(item => {
-        const on = !!config[item.key];
+      section.items.forEach(item => {
+        const isOn = !!config[item.key];
         const row = document.createElement("div");
-        row.className = "tog-row";
+        row.className = "toggle-row";
         row.innerHTML = `
-          <div class="feat-info">
-            <span class="feat-name">${item.name}</span>
-            <span class="feat-desc">${item.desc}</span>
+          <div class="toggle-info">
+            <span class="toggle-name">${item.name}</span>
+            <span class="toggle-desc">${item.desc}</span>
           </div>
-          <label class="sw" onclick="event.stopPropagation()">
-            <input type="checkbox" ${on ? "checked" : ""}
-              onchange="handleToggle('${item.key}', this.checked)" />
-            <span class="sw-track"></span>
-          </label>`;
+          <label class="switch" onclick="event.stopPropagation()">
+            <input type="checkbox" ${isOn ? "checked" : ""} onchange="handleToggle('${item.key}', this.checked)" />
+            <span class="slider"></span>
+          </label>
+        `;
         card.appendChild(row);
       });
+
       panel.appendChild(card);
     });
 
-    // linePosition
-    const lbl2 = document.createElement("div");
-    lbl2.className = "sec-lbl";
-    lbl2.textContent = "// ESP_LINE_POSITION";
-    panel.appendChild(lbl2);
+    // linePosition select (chỉ hiện khi ESPLine bật)
+    const lpSection = document.createElement("div");
+    lpSection.className = "section-label";
+    lpSection.textContent = "📐 ESP Line Position";
+    panel.appendChild(lpSection);
 
-    const lpc = document.createElement("div");
-    lpc.className = "feat-card";
-    const dis = !config.ESPLine ? "disabled" : "";
-    lpc.innerHTML = `
-      <div class="sel-row">
-        <div class="feat-info">
-          <span class="feat-name">Line Position</span>
-          <span class="feat-desc">// origin point of ESP line</span>
+    const lpCard = document.createElement("div");
+    lpCard.className = "card";
+    const lineDisabled = !config.ESPLine;
+    lpCard.innerHTML = `
+      <div class="select-row">
+        <div class="toggle-info">
+          <span class="toggle-name">Line Position</span>
+          <span class="toggle-desc">Vị trí điểm xuất phát đường ESP Line</span>
         </div>
-        <select ${dis} onchange="handleLinePos(this.value)">
-          <option value="Top"    ${config.linePosition==="Top"   ?"selected":""}>Top</option>
-          <option value="Bottom" ${config.linePosition==="Bottom"?"selected":""}>Bottom</option>
-          <option value="Center" ${config.linePosition==="Center"?"selected":""}>Center</option>
+        <select id="line-position-select" onchange="handleLinePosition(this.value)" ${lineDisabled ? "disabled" : ""}>
+          <option value="Top"    ${config.linePosition === "Top"    ? "selected" : ""}>Top</option>
+          <option value="Bottom" ${config.linePosition === "Bottom" ? "selected" : ""}>Bottom</option>
+          <option value="Center" ${config.linePosition === "Center" ? "selected" : ""}>Center</option>
         </select>
-      </div>`;
-    panel.appendChild(lpc);
+      </div>
+    `;
+    panel.appendChild(lpCard);
   }
 
-  function renderLastUpdated() {
+  function handleToggle(key, value) {
+    config[key] = value;
+    sendToggle(key, value);
+    // Re-render để cập nhật linePosition disabled state
+    renderPanel();
+  }
+
+  function handleLinePosition(val) {
+    sendLinePosition(val);
+  }
+
+  function updateLastUpdated() {
     const el = document.getElementById("last-update");
     if (config.last_updated) {
       const d = new Date(config.last_updated + "Z");
-      el.textContent = "updated › " + d.toLocaleTimeString("vi-VN");
+      el.textContent = "Cập nhật lúc: " + d.toLocaleTimeString("vi-VN");
     }
   }
 
   // ── Toast ─────────────────────────────────────────────────────────────────
-  let _tt;
-  function toast(msg, cls) {
+  let toastTimer;
+  function showToast(msg, type) {
     const el = document.getElementById("toast");
     el.textContent = msg;
-    el.className = "show " + (cls || "");
-    clearTimeout(_tt);
-    _tt = setTimeout(() => { el.className = ""; }, 2600);
+    el.className = "show " + (type || "");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = ""; }, 2500);
   }
+
+  // ── Poll every 3s ─────────────────────────────────────────────────────────
+  fetchConfig();
+  pollTimer = setInterval(fetchConfig, 3000);
 </script>
 </body>
 </html>
