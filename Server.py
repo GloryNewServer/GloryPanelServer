@@ -25,8 +25,10 @@ CORS(app)
 #  ADMIN_SECRET   = mật khẩu admin để tạo key
 JWT_SECRET    = "GloryVN2026"
 ADMIN_SECRET  = "AdminGloryVN"
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+SUPABASE_URL  = "https://utpnnnmekrvqxkkgemqw.supabase.co"
+SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0cG5ubm1la3J2cXhra2dlbXF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjAyNTksImV4cCI6MjA4OTIzNjI1OX0.dhQB4xD_L0a0fwo4gf0hl1pjNvVyeyyZYVZpnXwNep8"
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
