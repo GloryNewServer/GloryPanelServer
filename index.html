@@ -260,6 +260,41 @@
     }
     .badge.on  { background: rgba(74,222,128,0.15); color: var(--green); }
     .badge.off { background: rgba(248,113,113,0.12); color: var(--red); }
+
+
+
+
+
+
+    /* Connect button */
+    .connect-btn {
+      margin-top: 16px;
+      width: 100%;
+      max-width: 560px;
+      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      color: white;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
+    }
+
+    .connect-btn:hover {
+      background: linear-gradient(135deg, var(--purple-light), var(--purple));
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(157,122,229,0.25);
+    }
+
+    .connect-btn:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+
   </style>
 </head>
 <body>
@@ -285,7 +320,9 @@
     <span>Đang tải config...</span>
   </div>
 </div>
-
+<button class="connect-btn" onclick="connectClient()">
+⚡ Connect Client
+</button>
 <div id="last-update"></div>
 <div id="toast"></div>
 
@@ -485,9 +522,50 @@
     toastTimer = setTimeout(() => { el.className = ""; }, 2500);
   }
 
+
+
+
+  async function connectClient() {
+  if (!token) {
+    showToast("Bạn chưa nhập token!", "error");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Secret": token
+      },
+      body: JSON.stringify({
+        Connect: true
+      })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      showToast("Đã gửi lệnh Connect ✓", "success");
+    } else {
+      showToast("Lỗi: " + (data.error || res.status), "error");
+    }
+
+  } catch (e) {
+    showToast("Server không phản hồi!", "error");
+  }
+}
+
+
+
   // ── Poll every 3s ─────────────────────────────────────────────────────────
   fetchConfig();
   pollTimer = setInterval(fetchConfig, 3000);
+
+
+ 
+
+
 </script>
 </body>
 </html>

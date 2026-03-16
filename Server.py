@@ -12,6 +12,7 @@ API_SECRET = os.environ.get("API_SECRET", "gloryvn_secret_2024")
 
 # Trạng thái config mặc định
 config_state = {
+    "Connect": False,
     "AimbotNewEnabled": False,
     "ESPLine": False,
     "ESPBox2": False,
@@ -50,10 +51,10 @@ def update_config():
         return jsonify({"error": "No JSON body"}), 400
 
     allowed_keys = {
+        "Connect",
         "AimbotNewEnabled", "ESPLine", "ESPBox2", "ESPWukong",
         "ESPInfo", "ESPSkeleton", "ESPREFRESH", "FixEsp", "linePosition"
     }
-
     updated = {}
     for key, value in data.items():
         if key in allowed_keys:
@@ -82,6 +83,20 @@ def toggle_feature(feature):
     config_state["last_updated"] = datetime.utcnow().isoformat()
 
     return jsonify({"ok": True, "feature": feature, "value": config_state[feature]})
+
+@app.route("/api/connect", methods=["POST"])
+def set_connect():
+    if not verify_token(request):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json(force=True)
+    value = bool(data.get("Connect", False))
+
+    config_state["Connect"] = value
+    config_state["last_updated"] = datetime.utcnow().isoformat()
+
+    return jsonify({"ok": True, "Connect": value})
+    
 
 # ── Health check ──────────────────────────────────────────────────────────────
 @app.route("/health")
