@@ -23,10 +23,10 @@ CORS(app)
 #  SUPABASE_KEY   = service_role key (Settings → API → service_role)
 #  JWT_SECRET     = chuỗi bí mật bất kỳ (>= 32 ký tự)
 #  ADMIN_SECRET   = mật khẩu admin để tạo key
-JWT_SECRET    = os.environ.get("JWT_SECRET",    "gloryvn_jwt_secret_change_me_2024")
-ADMIN_SECRET  = os.environ.get("ADMIN_SECRET",  "gloryvn_admin_change_me_2024")
-SUPABASE_URL  = os.environ.get("SUPABASE_URL",  "")
-SUPABASE_KEY  = os.environ.get("SUPABASE_KEY",  "")
+JWT_SECRET    = "GloryVN2026"
+ADMIN_SECRET  = "AdminGloryVN"
+SUPABASE_URL  = "https://utpnnnmekrvqxkkgemqw.supabase.co"
+SUPABASE_KEY  = "sb_publishable_KeYQKUrWia2bNecHReTpLg_YDkTKOa5"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -465,6 +465,37 @@ def toggle_feature(feature):
 def health():
     return jsonify({"status": "ok", "ts": datetime.utcnow().isoformat()})
 
+
+# Thêm endpoint này vào Server.py
+# Đặt trước dòng  if __name__ == "__main__":
+
+@app.route("/api/device/check-hwid", methods=["GET"])
+def check_hwid():
+    """
+    App gọi khi khởi động để kiểm tra HWID đã liên kết account chưa.
+    Header: X-HWID: <hwid>
+    Trả về: {"linked": true/false}
+    """
+    hwid = (request.headers.get("X-HWID") or request.args.get("hwid", "")).strip()
+    if not hwid:
+        return jsonify({"error": "Missing HWID"}), 400
+
+    res = supabase.table("users").select("id").eq("hwid", hwid).execute()
+    linked = bool(res.data)
+
+    return jsonify({"linked": linked})
+
+@app.route("/test-db")
+def test_db():
+    try:
+        res = supabase.table("keys").select("*").execute()
+        return {
+            "count": len(res.data),
+            "data": res.data
+        }
+    except Exception as e:
+        return {"error": str(e)}
+ 
 
 # ════════════════════════════════════════════════════════════════════════════
 #  MAIN
