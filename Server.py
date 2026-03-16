@@ -499,6 +499,117 @@ def test_db():
  
 
 # ════════════════════════════════════════════════════════════════════════════
+#  ACCOUNT SETTINGS — Bind HWID / Đổi username / Đổi mật khẩu
+# ════════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/account/bind-hwid", methods=["POST"])
+def bind_hwid():
+    """
+    Gán HWID vào tài khoản (chỉ khi chưa có HWID).
+    Body: { "hwid": "<hwid_string>" }
+    """
+    payload = decode_jwt(request)
+    if not payload:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json(force=True) or {}
+    hwid = data.get("hwid", "").strip()
+    if not hwid:
+        return jsonify({"error": "Thiếu HWID"}), 400
+
+    user_res = supabase.table("users").select("id, hwid").eq("id", payload["user_id"]).single().execute()
+    if not user_res.data:
+        return jsonify({"error": "User not found"}), 404
+
+    user = user_res.data
+    if user.get("hwid"):
+        return jsonify({"error": "Tài khoản đã có HWID. Liên hệ admin để reset nếu cần."}), 400
+
+    # Kiểm tra HWID chưa được dùng bởi tài khoản khác
+    hwid_check = supabase.table("users").select("id").eq("hwid", hwid).execute()
+    if hwid_check.data:
+        return jsonify({"error": "HWID này đã được gán vào tài khoản khác"}), 409
+
+    supabase.table("users").update({"hwid": hwid}).eq("id", payload["user_id"]).execute()
+    return jsonify({"ok": True, "message": "Đã gán HWID thành công"})
+
+
+@app.route("/api/account/change-username", methods=["POST"])
+def change_username():
+    """
+    Đổi tên đăng nhập.
+    Body: { "new_username": "...", "password": "..." }
+    Yêu cầu xác nhận mật khẩu hiện tại.
+    """
+    payload = decode_jwt(request)
+    if not payload:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data         = request.get_json(force=True) or {}
+    new_username = data.get("new_username", "").strip()
+    password     = data.get("password", "")
+
+    if not new_username or not password:
+        return jsonify({"error": "Thiếu tên đăng nhập mới hoặc mật khẩu"}), 400
+    if len(new_username) < 3 or len(new_username) > 20:
+        return jsonify({"error": "Username phải từ 3–20 ký tự"}), 400
+    if not new_username.replace("_", "").isalnum():
+        return jsonify({"error": "Username chỉ gồm chữ, số và dấu _"}), 400
+
+    user_res = supabase.table("users").select("id, username, password_hash").eq("id", payload["user_id"]).single().execute()
+    if not user_res.data:
+        return jsonify({"error": "User not found"}), 404
+    user = user_res.data
+
+    if not bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
+        return jsonify({"error": "Mật khẩu không đúng"}), 401
+
+    if new_username.lower() == user["username"].lower():
+        return jsonify({"error": "Tên mới trùng với tên hiện tại"}), 400
+
+    # Kiểm tra trùng username
+    dup = supabase.table("users").select("id").eq("username", new_username).execute()
+    if dup.data:
+        return jsonify({"error": "Username đã tồn tại, hãy chọn tên khác"}), 400
+
+    supabase.table("users").update({"username": new_username}).eq("id", payload["user_id"]).execute()
+    new_token = make_jwt(payload["user_id"], new_username)
+    return jsonify({"ok": True, "new_username": new_username, "token": new_token})
+
+
+@app.route("/api/account/change-password", methods=["POST"])
+def change_password():
+    """
+    Đổi mật khẩu.
+    Body: { "old_password": "...", "new_password": "..." }
+    """
+    payload = decode_jwt(request)
+    if not payload:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data         = request.get_json(force=True) or {}
+    old_password = data.get("old_password", "")
+    new_password = data.get("new_password", "")
+
+    if not old_password or not new_password:
+        return jsonify({"error": "Thiếu mật khẩu cũ hoặc mật khẩu mới"}), 400
+    if len(new_password) < 6:
+        return jsonify({"error": "Mật khẩu mới phải có ít nhất 6 ký tự"}), 400
+
+    user_res = supabase.table("users").select("id, password_hash").eq("id", payload["user_id"]).single().execute()
+    if not user_res.data:
+        return jsonify({"error": "User not found"}), 404
+    user = user_res.data
+
+    if not bcrypt.checkpw(old_password.encode(), user["password_hash"].encode()):
+        return jsonify({"error": "Mật khẩu cũ không đúng"}), 401
+
+    new_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+    supabase.table("users").update({"password_hash": new_hash}).eq("id", payload["user_id"]).execute()
+    return jsonify({"ok": True, "message": "Đổi mật khẩu thành công"})
+
+
+# ════════════════════════════════════════════════════════════════════════════
 #  MAIN
 # ════════════════════════════════════════════════════════════════════════════
 

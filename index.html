@@ -169,6 +169,76 @@
 
     #last-update { font-size: 0.75rem; color: var(--muted); text-align: center; margin-top: 6px; }
 
+    /* ── Panel Tabs ─────────────────────────────────────────────── */
+    .panel-tabs {
+      display: flex; border-bottom: 1px solid var(--border);
+      background: var(--card); border-radius: var(--radius) var(--radius) 0 0;
+      overflow: hidden;
+    }
+    .panel-tab {
+      flex: 1; padding: 12px 8px; text-align: center; font-size: 0.83rem;
+      font-weight: 600; cursor: pointer; color: var(--muted);
+      transition: color 0.2s, background 0.2s; border-bottom: 2px solid transparent;
+      user-select: none;
+    }
+    .panel-tab.active { color: var(--purple-light); border-bottom-color: var(--purple); background: rgba(157,122,229,0.05); }
+    .panel-tab:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.03); }
+
+    .panel-view { display: none; }
+    .panel-view.active { display: flex; flex-direction: column; gap: 14px; padding-top: 4px; }
+
+    /* ── Settings Tab ───────────────────────────────────────────── */
+    .settings-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .settings-section-title {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); padding: 12px 18px 6px; border-bottom: 1px solid var(--border);
+      background: rgba(157,122,229,0.04);
+    }
+    .settings-row {
+      padding: 16px 18px; border-bottom: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row label {
+      font-size: 0.75rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.6px;
+    }
+    .settings-row input {
+      width: 100%; background: #1a1a2e; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); padding: 9px 13px;
+      font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+    }
+    .settings-row input:focus { border-color: var(--purple); }
+    .settings-row input:disabled { opacity: 0.45; cursor: not-allowed; }
+    .settings-btn {
+      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      color: #fff; border: none; border-radius: 8px; padding: 10px 20px;
+      font-size: 0.88rem; font-weight: 700; cursor: pointer; letter-spacing: 0.3px;
+      transition: opacity 0.2s, transform 0.15s; align-self: flex-start;
+    }
+    .settings-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .settings-btn:disabled { opacity: 0.5; transform: none; cursor: default; }
+    .settings-btn.danger {
+      background: linear-gradient(135deg, #c0392b, #922b21);
+    }
+    .settings-msg {
+      font-size: 0.8rem; padding: 7px 12px; border-radius: 8px; display: none;
+    }
+    .settings-msg.show { display: block; }
+    .settings-msg.success { color: var(--green); background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.25); }
+    .settings-msg.error   { color: var(--red);   background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.25); }
+    .hwid-info {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(157,122,229,0.06); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; color: var(--muted);
+    }
+    .hwid-info .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .hwid-info .dot.bound   { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .hwid-info .dot.unbound { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+
     /* ── Toast ──────────────────────────────────────────────────── */
     #toast {
       position: fixed; bottom: 28px; right: 20px;
@@ -246,10 +316,70 @@
 
 <!-- ── Main Panel ────────────────────────────────────────────────── -->
 <div id="main-panel">
-  <div id="loading">
-    <div class="spinner"></div>
-    <span>Đang tải config...</span>
+  <!-- Tab bar -->
+  <div class="panel-tabs">
+    <div class="panel-tab active" id="ptab-control"  onclick="switchPanelTab('control')">🎮 Điều Khiển</div>
+    <div class="panel-tab"        id="ptab-settings" onclick="switchPanelTab('settings')">⚙️ Cài Đặt</div>
   </div>
+
+  <!-- View: Control -->
+  <div class="panel-view active" id="pview-control">
+    <div id="loading">
+      <div class="spinner"></div>
+      <span>Đang tải config...</span>
+    </div>
+  </div>
+
+  <!-- View: Settings -->
+  <div class="panel-view" id="pview-settings">
+
+    <!-- HWID Binding -->
+    <div class="settings-card">
+      <div class="settings-section-title">🔒 Liên Kết HWID</div>
+      <div class="settings-row">
+        <div id="hwid-status-info" class="hwid-info">
+          <div class="dot unbound" id="hwid-dot"></div>
+          <span id="hwid-status-text">Chưa có HWID — điền HWID bên dưới để gán</span>
+        </div>
+        <label>HWID của bạn</label>
+        <input type="text" id="hwid-input" placeholder="Paste HWID vào đây..." />
+        <div class="settings-msg" id="hwid-msg"></div>
+        <button class="settings-btn" id="hwid-btn" onclick="doBindHwid()">🔗 Gán HWID</button>
+        <p style="font-size:0.75rem;color:var(--muted);line-height:1.5;">
+          ⚠️ Sau khi đã gán, HWID <strong>không thể tự đổi</strong>. Liên hệ admin nếu cần reset.
+        </p>
+      </div>
+    </div>
+
+    <!-- Change Username -->
+    <div class="settings-card">
+      <div class="settings-section-title">✏️ Đổi Tên Đăng Nhập</div>
+      <div class="settings-row">
+        <label>Tên đăng nhập mới</label>
+        <input type="text" id="new-username-input" placeholder="Nhập username mới (3–20 ký tự)..." />
+        <label>Xác nhận mật khẩu hiện tại</label>
+        <input type="password" id="chuser-pass-input" placeholder="Mật khẩu hiện tại..." autocomplete="current-password" />
+        <div class="settings-msg" id="chuser-msg"></div>
+        <button class="settings-btn" id="chuser-btn" onclick="doChangeUsername()">💾 Lưu tên mới</button>
+      </div>
+    </div>
+
+    <!-- Change Password -->
+    <div class="settings-card">
+      <div class="settings-section-title">🔑 Đổi Mật Khẩu</div>
+      <div class="settings-row">
+        <label>Mật khẩu hiện tại</label>
+        <input type="password" id="old-pass-input" placeholder="Nhập mật khẩu hiện tại..." autocomplete="current-password" />
+        <label>Mật khẩu mới</label>
+        <input type="password" id="new-pass-input" placeholder="Tối thiểu 6 ký tự..." autocomplete="new-password" />
+        <label>Nhập lại mật khẩu mới</label>
+        <input type="password" id="new-pass-confirm" placeholder="Nhập lại mật khẩu mới..." autocomplete="new-password" />
+        <div class="settings-msg" id="chpass-msg"></div>
+        <button class="settings-btn" id="chpass-btn" onclick="doChangePassword()">🔒 Đổi mật khẩu</button>
+      </div>
+    </div>
+
+  </div><!-- /pview-settings -->
 </div>
 
 <div id="toast"></div>
@@ -288,6 +418,18 @@ let token    = localStorage.getItem("gloryvn_token") || "";
 let username = localStorage.getItem("gloryvn_user")  || "";
 let config   = {};
 let pollTimer = null;
+let hwidBound = false;   // trạng thái HWID của user hiện tại
+
+// ══════════════════════════════════════════════════════════════════
+//  PANEL TABS
+// ══════════════════════════════════════════════════════════════════
+function switchPanelTab(tab) {
+  ["control", "settings"].forEach(t => {
+    document.getElementById("ptab-" + t).classList.toggle("active", t === tab);
+    document.getElementById("pview-" + t).classList.toggle("active", t === tab);
+  });
+  if (tab === "settings") refreshHwidStatus();
+}
 
 // ══════════════════════════════════════════════════════════════════
 //  INIT
@@ -304,7 +446,9 @@ function showPanel() {
   const badge = document.getElementById("user-badge");
   badge.classList.add("show");
   document.getElementById("username-display").textContent = username;
+  switchPanelTab("control");
   fetchConfig();
+  refreshHwidStatus();
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(fetchConfig, 3000);
 }
@@ -515,7 +659,7 @@ async function connectClient() {
 //  RENDER PANEL
 // ══════════════════════════════════════════════════════════════════
 function renderPanel() {
-  const panel = document.getElementById("main-panel");
+  const panel = document.getElementById("pview-control");
   panel.innerHTML = "";
 
   // Device info card
@@ -626,6 +770,140 @@ function showToast(msg, type) {
   el.className = "show " + (type || "");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.className = ""; }, 2500);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  ACCOUNT SETTINGS
+// ══════════════════════════════════════════════════════════════════
+
+async function refreshHwidStatus() {
+  if (!token) return;
+  try {
+    const res  = await fetch("/api/auth/me", { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) return;
+    const data = await res.json();
+    hwidBound  = !!data.hwid_bound;
+    updateHwidUI();
+  } catch (_) {}
+}
+
+function updateHwidUI() {
+  const dot     = document.getElementById("hwid-dot");
+  const txt     = document.getElementById("hwid-status-text");
+  const inp     = document.getElementById("hwid-input");
+  const btn     = document.getElementById("hwid-btn");
+  if (!dot) return;
+  if (hwidBound) {
+    dot.className      = "dot bound";
+    txt.innerHTML      = "HWID đã được <strong>gán thành công</strong> vào tài khoản này";
+    inp.disabled       = true;
+    inp.placeholder    = "HWID đã bị khoá — không thể thay đổi";
+    btn.disabled       = true;
+    btn.textContent    = "✅ Đã gán";
+  } else {
+    dot.className      = "dot unbound";
+    txt.textContent    = "Chưa có HWID — điền HWID bên dưới để gán";
+    inp.disabled       = false;
+    btn.disabled       = false;
+    btn.textContent    = "🔗 Gán HWID";
+  }
+}
+
+function setSettingsMsg(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className   = "settings-msg show " + type;
+  setTimeout(() => { el.className = "settings-msg"; }, 3500);
+}
+
+async function doBindHwid() {
+  const hwid = document.getElementById("hwid-input").value.trim();
+  const btn  = document.getElementById("hwid-btn");
+  if (!hwid) { setSettingsMsg("hwid-msg", "Vui lòng nhập HWID", "error"); return; }
+  btn.disabled = true; btn.textContent = "Đang gán...";
+  try {
+    const res  = await fetch("/api/account/bind-hwid", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ hwid })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      hwidBound = true;
+      updateHwidUI();
+      setSettingsMsg("hwid-msg", "✅ Gán HWID thành công!", "success");
+    } else {
+      setSettingsMsg("hwid-msg", data.error || "Lỗi không xác định", "error");
+      btn.disabled = false; btn.textContent = "🔗 Gán HWID";
+    }
+  } catch (_) {
+    setSettingsMsg("hwid-msg", "Không thể kết nối server", "error");
+    btn.disabled = false; btn.textContent = "🔗 Gán HWID";
+  }
+}
+
+async function doChangeUsername() {
+  const newUser = document.getElementById("new-username-input").value.trim();
+  const pass    = document.getElementById("chuser-pass-input").value;
+  const btn     = document.getElementById("chuser-btn");
+  if (!newUser || !pass) { setSettingsMsg("chuser-msg", "Vui lòng nhập đầy đủ thông tin", "error"); return; }
+  btn.disabled = true; btn.textContent = "Đang lưu...";
+  try {
+    const res  = await fetch("/api/account/change-username", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ new_username: newUser, password: pass })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      token    = data.token;
+      username = data.new_username;
+      localStorage.setItem("gloryvn_token", token);
+      localStorage.setItem("gloryvn_user",  username);
+      document.getElementById("username-display").textContent = username;
+      document.getElementById("new-username-input").value = "";
+      document.getElementById("chuser-pass-input").value  = "";
+      setSettingsMsg("chuser-msg", "✅ Đổi tên thành công! Tên mới: " + username, "success");
+      renderPanel();
+    } else {
+      setSettingsMsg("chuser-msg", data.error || "Lỗi không xác định", "error");
+    }
+  } catch (_) {
+    setSettingsMsg("chuser-msg", "Không thể kết nối server", "error");
+  } finally {
+    btn.disabled = false; btn.textContent = "💾 Lưu tên mới";
+  }
+}
+
+async function doChangePassword() {
+  const oldPass  = document.getElementById("old-pass-input").value;
+  const newPass  = document.getElementById("new-pass-input").value;
+  const confirm  = document.getElementById("new-pass-confirm").value;
+  const btn      = document.getElementById("chpass-btn");
+  if (!oldPass || !newPass || !confirm) { setSettingsMsg("chpass-msg", "Vui lòng nhập đầy đủ thông tin", "error"); return; }
+  if (newPass !== confirm) { setSettingsMsg("chpass-msg", "Mật khẩu mới không khớp", "error"); return; }
+  if (newPass.length < 6)  { setSettingsMsg("chpass-msg", "Mật khẩu mới phải ít nhất 6 ký tự", "error"); return; }
+  btn.disabled = true; btn.textContent = "Đang đổi...";
+  try {
+    const res  = await fetch("/api/account/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ old_password: oldPass, new_password: newPass })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById("old-pass-input").value  = "";
+      document.getElementById("new-pass-input").value  = "";
+      document.getElementById("new-pass-confirm").value = "";
+      setSettingsMsg("chpass-msg", "✅ Đổi mật khẩu thành công!", "success");
+    } else {
+      setSettingsMsg("chpass-msg", data.error || "Lỗi không xác định", "error");
+    }
+  } catch (_) {
+    setSettingsMsg("chpass-msg", "Không thể kết nối server", "error");
+  } finally {
+    btn.disabled = false; btn.textContent = "🔒 Đổi mật khẩu";
+  }
 }
 
 // Enter key support
