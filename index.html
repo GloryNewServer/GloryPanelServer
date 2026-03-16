@@ -14,13 +14,12 @@
       --purple-dark: #6b4faa;
       --green: #4ade80;
       --red: #f87171;
+      --amber: #fbbf24;
       --text: #e2d9f3;
       --muted: #7a6f96;
       --radius: 12px;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       background: var(--bg);
       color: var(--text);
@@ -31,541 +30,610 @@
       align-items: center;
       padding: 24px 16px 48px;
     }
-
     header {
-      width: 100%;
-      max-width: 560px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      width: 100%; max-width: 560px;
+      display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 28px;
     }
-
     header h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
+      font-size: 1.5rem; font-weight: 700;
       background: linear-gradient(135deg, var(--purple-light), var(--purple));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       letter-spacing: 0.5px;
     }
-
+    .header-right { display: flex; align-items: center; gap: 12px; }
     #status-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      background: var(--muted);
-      transition: background 0.3s;
-      box-shadow: 0 0 0 0 transparent;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--muted); transition: background 0.3s;
     }
-    #status-dot.online {
-      background: var(--green);
-      box-shadow: 0 0 8px var(--green);
+    #status-dot.online { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    #user-badge {
+      font-size: 0.78rem; color: var(--muted); background: rgba(157,122,229,0.1);
+      border: 1px solid var(--border); border-radius: 99px;
+      padding: 3px 10px; display: none; align-items: center; gap: 6px;
     }
+    #user-badge.show { display: flex; }
+    #logout-btn {
+      font-size: 0.75rem; color: var(--red); background: none; border: none;
+      cursor: pointer; padding: 0; opacity: 0.7; transition: opacity 0.2s;
+    }
+    #logout-btn:hover { opacity: 1; }
 
-    /* Auth card */
-    #auth-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-      width: 100%;
-      max-width: 560px;
-      margin-bottom: 20px;
+    /* ── Auth section ──────────────────────────────────────────── */
+    #auth-section {
+      width: 100%; max-width: 420px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; margin-bottom: 20px;
     }
-    #auth-card label {
-      display: block;
-      font-size: 0.8rem;
-      color: var(--muted);
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
+    .auth-tabs {
+      display: flex; border-bottom: 1px solid var(--border);
     }
-    #auth-card .row {
-      display: flex;
-      gap: 10px;
+    .auth-tab {
+      flex: 1; padding: 13px; text-align: center; font-size: 0.88rem;
+      font-weight: 600; cursor: pointer; color: var(--muted);
+      transition: color 0.2s, border-bottom 0.2s; border-bottom: 2px solid transparent;
     }
-    #auth-card input {
-      flex: 1;
-      background: #1a1a2e;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      padding: 9px 13px;
-      font-size: 0.92rem;
-      outline: none;
-      transition: border-color 0.2s;
+    .auth-tab.active { color: var(--purple-light); border-bottom-color: var(--purple); }
+    .auth-body { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+    .auth-body label {
+      display: block; font-size: 0.75rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px;
     }
-    #auth-card input:focus { border-color: var(--purple); }
-    #auth-card button {
-      background: var(--purple);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 9px 20px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      font-weight: 600;
-      transition: background 0.2s;
+    .auth-body input {
+      width: 100%; background: #1a1a2e; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); padding: 10px 13px;
+      font-size: 0.92rem; outline: none; transition: border-color 0.2s;
     }
-    #auth-card button:hover { background: var(--purple-light); }
+    .auth-body input:focus { border-color: var(--purple); }
+    .auth-submit {
+      width: 100%; background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      color: #fff; border: none; border-radius: 8px; padding: 11px;
+      font-size: 0.92rem; font-weight: 700; cursor: pointer; letter-spacing: 0.3px;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .auth-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+    .auth-submit:disabled { opacity: 0.5; transform: none; cursor: default; }
+    .auth-error {
+      font-size: 0.82rem; color: var(--red); background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.25); border-radius: 8px;
+      padding: 8px 12px; display: none;
+    }
+    .auth-error.show { display: block; }
 
-    /* Main panel */
-    #panel {
-      width: 100%;
-      max-width: 560px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
+    /* ── Main panel ─────────────────────────────────────────────── */
+    #main-panel { width: 100%; max-width: 560px; display: none; flex-direction: column; gap: 14px; }
+    #main-panel.show { display: flex; }
 
     .section-label {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--muted);
-      padding: 0 4px;
-      margin-top: 6px;
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); padding: 0 4px; margin-top: 6px;
     }
-
     .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
     }
-
     .toggle-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--border);
-      transition: background 0.15s;
-      cursor: pointer;
-      user-select: none;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      transition: background 0.15s; cursor: pointer; user-select: none;
     }
     .toggle-row:last-child { border-bottom: none; }
     .toggle-row:hover { background: rgba(157,122,229,0.06); }
-
     .toggle-info { display: flex; flex-direction: column; gap: 2px; }
-    .toggle-name {
-      font-size: 0.95rem;
-      font-weight: 500;
-      color: var(--text);
-    }
-    .toggle-desc {
-      font-size: 0.75rem;
-      color: var(--muted);
-    }
-
-    /* Toggle switch */
-    .switch {
-      position: relative;
-      width: 46px; height: 26px;
-      flex-shrink: 0;
-    }
+    .toggle-name { font-size: 0.95rem; font-weight: 500; color: var(--text); }
+    .toggle-desc { font-size: 0.75rem; color: var(--muted); }
+    .switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
     .switch input { opacity: 0; width: 0; height: 0; }
-    .slider {
-      position: absolute;
-      inset: 0;
-      background: #2a2040;
-      border-radius: 26px;
-      transition: background 0.3s;
-    }
+    .slider { position: absolute; inset: 0; background: #2a2040; border-radius: 26px; transition: background 0.3s; }
     .slider:before {
-      content: "";
-      position: absolute;
-      width: 20px; height: 20px;
-      left: 3px; bottom: 3px;
-      background: white;
-      border-radius: 50%;
-      transition: transform 0.3s;
+      content: ""; position: absolute; width: 20px; height: 20px;
+      left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: transform 0.3s;
     }
     input:checked + .slider { background: var(--purple); }
     input:checked + .slider:before { transform: translateX(20px); }
-
-    /* linePosition select */
     .select-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px;
+      display: flex; align-items: center; justify-content: space-between; padding: 14px 18px;
     }
     .select-row select {
-      background: #1a1a2e;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      padding: 6px 12px;
-      font-size: 0.88rem;
-      outline: none;
-      cursor: pointer;
+      background: #1a1a2e; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); padding: 6px 12px; font-size: 0.88rem; outline: none; cursor: pointer;
     }
     .select-row select:focus { border-color: var(--purple); }
 
-    /* Last updated */
-    #last-update {
-      font-size: 0.75rem;
-      color: var(--muted);
-      text-align: center;
-      margin-top: 6px;
+    /* ── Device info card ───────────────────────────────────────── */
+    .info-card {
+      background: rgba(157,122,229,0.05); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 18px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
     }
+    .info-card .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0;
+    }
+    .info-card .dot.bound { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .info-card .dot.unbound { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+    .info-card .info-text { font-size: 0.82rem; color: var(--muted); }
+    .info-card .info-text strong { color: var(--text); }
 
-    /* Toast */
+    /* ── Connect button ─────────────────────────────────────────── */
+    .connect-btn {
+      width: 100%; background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      border: 1px solid var(--border); border-radius: var(--radius); padding: 14px;
+      color: white; font-weight: 700; font-size: 0.95rem; cursor: pointer;
+      letter-spacing: 0.5px; transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
+    }
+    .connect-btn:hover {
+      background: linear-gradient(135deg, var(--purple-light), var(--purple));
+      transform: translateY(-1px); box-shadow: 0 6px 16px rgba(157,122,229,0.25);
+    }
+    .connect-btn:active { transform: translateY(0); box-shadow: none; }
+
+    #last-update { font-size: 0.75rem; color: var(--muted); text-align: center; margin-top: 6px; }
+
+    /* ── Toast ──────────────────────────────────────────────────── */
     #toast {
-      position: fixed;
-      bottom: 28px; right: 20px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 18px;
-      font-size: 0.85rem;
-      color: var(--text);
-      opacity: 0;
-      transform: translateY(12px);
-      transition: opacity 0.3s, transform 0.3s;
-      pointer-events: none;
-      z-index: 999;
+      position: fixed; bottom: 28px; right: 20px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 18px; font-size: 0.85rem; color: var(--text);
+      opacity: 0; transform: translateY(12px); transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none; z-index: 999;
     }
     #toast.show { opacity: 1; transform: translateY(0); }
     #toast.success { border-color: var(--green); color: var(--green); }
-    #toast.error   { border-color: var(--red);   color: var(--red);   }
+    #toast.error   { border-color: var(--red); color: var(--red); }
+    #toast.info    { border-color: var(--purple); color: var(--purple-light); }
 
-    /* Loading spinner */
     .spinner {
-      width: 18px; height: 18px;
-      border: 2px solid var(--border);
-      border-top-color: var(--purple);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      display: inline-block;
+      width: 18px; height: 18px; border: 2px solid var(--border);
+      border-top-color: var(--purple); border-radius: 50%;
+      animation: spin 0.7s linear infinite; display: inline-block;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    #loading {
-      text-align: center;
-      padding: 40px 0;
-      color: var(--muted);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .badge {
-      font-size: 0.7rem;
-      padding: 2px 8px;
-      border-radius: 99px;
-      font-weight: 600;
-    }
-    .badge.on  { background: rgba(74,222,128,0.15); color: var(--green); }
-    .badge.off { background: rgba(248,113,113,0.12); color: var(--red); }
-
-
-
-
-
-
-    /* Connect button */
-    .connect-btn {
-      margin-top: 16px;
-      width: 100%;
-      max-width: 560px;
-      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px;
-      color: white;
-      font-weight: 700;
-      font-size: 0.95rem;
-      cursor: pointer;
-      letter-spacing: 0.5px;
-      transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
-    }
-
-    .connect-btn:hover {
-      background: linear-gradient(135deg, var(--purple-light), var(--purple));
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(157,122,229,0.25);
-    }
-
-    .connect-btn:active {
-      transform: translateY(0);
-      box-shadow: none;
-    }
-
-
+    #loading { text-align: center; padding: 40px 0; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 12px; }
   </style>
 </head>
 <body>
 
 <header>
   <h1>⚡ Glory VN Panel</h1>
-  <div id="status-dot" title="Server status"></div>
+  <div class="header-right">
+    <div id="user-badge">
+      <span id="username-display">—</span>
+      <button id="logout-btn" onclick="logout()">✕</button>
+    </div>
+    <div id="status-dot" title="Server status"></div>
+  </div>
 </header>
 
-<!-- Auth -->
-<div id="auth-card">
-  <label>API Secret Token</label>
-  <div class="row">
-    <input type="password" id="token-input" placeholder="Nhập secret token..." />
-    <button onclick="saveToken()">Lưu</button>
+<!-- ── Auth Section ──────────────────────────────────────────────── -->
+<div id="auth-section">
+  <div class="auth-tabs">
+    <div class="auth-tab active" id="tab-login"    onclick="switchTab('login')">Đăng Nhập</div>
+    <div class="auth-tab"        id="tab-register" onclick="switchTab('register')">Đăng Ký</div>
+  </div>
+
+  <!-- Login form -->
+  <div class="auth-body" id="form-login">
+    <div>
+      <label>Username</label>
+      <input type="text" id="login-user" placeholder="Nhập username..." autocomplete="username" />
+    </div>
+    <div>
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="Nhập password..." autocomplete="current-password" />
+    </div>
+    <div class="auth-error" id="login-error"></div>
+    <button class="auth-submit" id="login-btn" onclick="doLogin()">Đăng nhập</button>
+  </div>
+
+  <!-- Register form -->
+  <div class="auth-body" id="form-register" style="display:none;">
+    <div>
+      <label>Username</label>
+      <input type="text" id="reg-user" placeholder="Tên đăng nhập (3–20 ký tự)..." />
+    </div>
+    <div>
+      <label>Password</label>
+      <input type="password" id="reg-pass" placeholder="Mật khẩu (tối thiểu 6 ký tự)..." />
+    </div>
+    <div>
+      <label>Activation Key</label>
+      <input type="text" id="reg-key" placeholder="GLORY-XXXXX-XXXXX-XXXXX-XXXXX" style="text-transform:uppercase;" />
+    </div>
+    <div class="auth-error" id="reg-error"></div>
+    <button class="auth-submit" id="reg-btn" onclick="doRegister()">Tạo tài khoản</button>
   </div>
 </div>
 
-<!-- Panel -->
-<div id="panel">
+<!-- ── Main Panel ────────────────────────────────────────────────── -->
+<div id="main-panel">
   <div id="loading">
     <div class="spinner"></div>
     <span>Đang tải config...</span>
   </div>
 </div>
-<button class="connect-btn" onclick="connectClient()">
-⚡ Connect Client
-</button>
-<div id="last-update"></div>
+
 <div id="toast"></div>
 
 <script>
-  const FEATURES = [
-    {
-      section: "🎯 Aim",
-      items: [
-        { key: "AimbotNewEnabled", name: "AimBot Enable", desc: "Bật / tắt chức năng Aimbot" },
-      ]
-    },
-    {
-      section: "👁️ ESP Visual",
-      items: [
-        { key: "ESPLine",      name: "ESP Line",     desc: "Vẽ đường thẳng tới kẻ địch" },
-        { key: "ESPBox2",      name: "ESP Box",      desc: "Vẽ hộp 3D quanh kẻ địch" },
-        { key: "ESPWukong",    name: "ESP Wukong",   desc: "Hiện ESP cho dạng Wukong" },
-        { key: "ESPInfo",      name: "ESP INFO",     desc: "Hiển thị thông tin (tên, máu...)" },
-        { key: "ESPSkeleton",  name: "ESP Skeleton", desc: "Vẽ skeleton / xương kẻ địch" },
-      ]
-    },
-    {
-      section: "⚙️ Misc ESP",
-      items: [
-        { key: "ESPREFRESH",   name: "ESP Refresh",  desc: "Tự động refresh entity cache" },
-        { key: "FixEsp",       name: "ESP FIX",      desc: "Bật fix lỗi ESP" },
-      ]
-    }
-  ];
-
-  let token = localStorage.getItem("gloryvn_token") || "";
-  let config = {};
-  let pollTimer = null;
-
-  // ── Init ──────────────────────────────────────────────────────────────────
-  document.getElementById("token-input").value = token;
-
-  function saveToken() {
-    token = document.getElementById("token-input").value.trim();
-    localStorage.setItem("gloryvn_token", token);
-    showToast("Token đã lưu ✓", "success");
+// ══════════════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════════════
+const FEATURES = [
+  {
+    section: "🎯 Aim",
+    items: [
+      { key: "AimbotNewEnabled", name: "AimBot Enable", desc: "Bật / tắt chức năng Aimbot" },
+    ]
+  },
+  {
+    section: "👁️ ESP Visual",
+    items: [
+      { key: "ESPLine",     name: "ESP Line",     desc: "Vẽ đường thẳng tới kẻ địch" },
+      { key: "ESPBox2",     name: "ESP Box",      desc: "Vẽ hộp 3D quanh kẻ địch" },
+      { key: "ESPWukong",   name: "ESP Wukong",   desc: "Hiện ESP cho dạng Wukong" },
+      { key: "ESPInfo",     name: "ESP INFO",     desc: "Hiển thị thông tin (tên, máu...)" },
+      { key: "ESPSkeleton", name: "ESP Skeleton", desc: "Vẽ skeleton / xương kẻ địch" },
+    ]
+  },
+  {
+    section: "⚙️ Misc ESP",
+    items: [
+      { key: "ESPREFRESH", name: "ESP Refresh", desc: "Tự động refresh entity cache" },
+      { key: "FixEsp",     name: "ESP FIX",     desc: "Bật fix lỗi ESP" },
+    ]
   }
+];
 
-  // ── Fetch config ──────────────────────────────────────────────────────────
-  async function fetchConfig() {
-    try {
-      const res = await fetch("/api/config");
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      config = await res.json();
-      document.getElementById("status-dot").classList.add("online");
-      renderPanel();
-      updateLastUpdated();
-    } catch (e) {
-      document.getElementById("status-dot").classList.remove("online");
-      console.error("fetchConfig error:", e);
-    }
+let token    = localStorage.getItem("gloryvn_token") || "";
+let username = localStorage.getItem("gloryvn_user")  || "";
+let config   = {};
+let pollTimer = null;
+
+// ══════════════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════════════
+window.onload = function () {
+  if (token) {
+    showPanel();
   }
+};
 
-  // ── Toggle feature ────────────────────────────────────────────────────────
-  async function sendToggle(key, value) {
-    try {
-      const body = {};
-      body[key] = value;
-      const res = await fetch("/api/config", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-Secret": token
-        },
-        body: JSON.stringify(body)
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast("Lỗi: " + (data.error || res.status), "error");
-        // Revert
-        config[key] = !value;
-        renderPanel();
-        return;
-      }
-      config = data.config;
-      renderPanel();
-      updateLastUpdated();
-      showToast(`${key}: ${value ? "ON ✓" : "OFF ✓"}`, "success");
-    } catch (e) {
-      showToast("Kết nối thất bại!", "error");
-    }
-  }
+function showPanel() {
+  document.getElementById("auth-section").style.display = "none";
+  document.getElementById("main-panel").classList.add("show");
+  const badge = document.getElementById("user-badge");
+  badge.classList.add("show");
+  document.getElementById("username-display").textContent = username;
+  fetchConfig();
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(fetchConfig, 3000);
+}
 
-  async function sendLinePosition(val) {
-    try {
-      const res = await fetch("/api/config", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-Secret": token
-        },
-        body: JSON.stringify({ linePosition: val })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        config = data.config;
-        showToast("linePosition: " + val, "success");
-        updateLastUpdated();
-      } else {
-        showToast("Lỗi: " + (data.error || res.status), "error");
-      }
-    } catch (e) {
-      showToast("Kết nối thất bại!", "error");
-    }
-  }
+function showAuth() {
+  document.getElementById("auth-section").style.display = "";
+  document.getElementById("main-panel").classList.remove("show");
+  document.getElementById("user-badge").classList.remove("show");
+  if (pollTimer) clearInterval(pollTimer);
+}
 
-  // ── Render ────────────────────────────────────────────────────────────────
-  function renderPanel() {
-    const panel = document.getElementById("panel");
-    panel.innerHTML = "";
+// ══════════════════════════════════════════════════════════════════
+//  AUTH TABS
+// ══════════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.getElementById("form-login").style.display    = tab === "login"    ? "" : "none";
+  document.getElementById("form-register").style.display = tab === "register" ? "" : "none";
+  document.getElementById("tab-login").className    = "auth-tab" + (tab === "login"    ? " active" : "");
+  document.getElementById("tab-register").className = "auth-tab" + (tab === "register" ? " active" : "");
+}
 
-    FEATURES.forEach(section => {
-      const sectionEl = document.createElement("div");
-      sectionEl.className = "section-label";
-      sectionEl.textContent = section.section;
-      panel.appendChild(sectionEl);
+// ══════════════════════════════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════════════════════════════
+async function doLogin() {
+  const user = document.getElementById("login-user").value.trim();
+  const pass = document.getElementById("login-pass").value;
+  const errEl = document.getElementById("login-error");
+  const btn   = document.getElementById("login-btn");
 
-      const card = document.createElement("div");
-      card.className = "card";
+  errEl.classList.remove("show");
+  if (!user || !pass) { setAuthError(errEl, "Vui lòng nhập đầy đủ thông tin"); return; }
 
-      section.items.forEach(item => {
-        const isOn = !!config[item.key];
-        const row = document.createElement("div");
-        row.className = "toggle-row";
-        row.innerHTML = `
-          <div class="toggle-info">
-            <span class="toggle-name">${item.name}</span>
-            <span class="toggle-desc">${item.desc}</span>
-          </div>
-          <label class="switch" onclick="event.stopPropagation()">
-            <input type="checkbox" ${isOn ? "checked" : ""} onchange="handleToggle('${item.key}', this.checked)" />
-            <span class="slider"></span>
-          </label>
-        `;
-        card.appendChild(row);
-      });
-
-      panel.appendChild(card);
-    });
-
-    // linePosition select (chỉ hiện khi ESPLine bật)
-    const lpSection = document.createElement("div");
-    lpSection.className = "section-label";
-    lpSection.textContent = "📐 ESP Line Position";
-    panel.appendChild(lpSection);
-
-    const lpCard = document.createElement("div");
-    lpCard.className = "card";
-    const lineDisabled = !config.ESPLine;
-    lpCard.innerHTML = `
-      <div class="select-row">
-        <div class="toggle-info">
-          <span class="toggle-name">Line Position</span>
-          <span class="toggle-desc">Vị trí điểm xuất phát đường ESP Line</span>
-        </div>
-        <select id="line-position-select" onchange="handleLinePosition(this.value)" ${lineDisabled ? "disabled" : ""}>
-          <option value="Top"    ${config.linePosition === "Top"    ? "selected" : ""}>Top</option>
-          <option value="Bottom" ${config.linePosition === "Bottom" ? "selected" : ""}>Bottom</option>
-          <option value="Center" ${config.linePosition === "Center" ? "selected" : ""}>Center</option>
-        </select>
-      </div>
-    `;
-    panel.appendChild(lpCard);
-  }
-
-  function handleToggle(key, value) {
-    config[key] = value;
-    sendToggle(key, value);
-    // Re-render để cập nhật linePosition disabled state
-    renderPanel();
-  }
-
-  function handleLinePosition(val) {
-    sendLinePosition(val);
-  }
-
-  function updateLastUpdated() {
-    const el = document.getElementById("last-update");
-    if (config.last_updated) {
-      const d = new Date(config.last_updated + "Z");
-      el.textContent = "Cập nhật lúc: " + d.toLocaleTimeString("vi-VN");
-    }
-  }
-
-  // ── Toast ─────────────────────────────────────────────────────────────────
-  let toastTimer;
-  function showToast(msg, type) {
-    const el = document.getElementById("toast");
-    el.textContent = msg;
-    el.className = "show " + (type || "");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { el.className = ""; }, 2500);
-  }
-
-
-
-
-  async function connectClient() {
-  if (!token) {
-    showToast("Bạn chưa nhập token!", "error");
-    return;
-  }
+  btn.disabled = true;
+  btn.textContent = "Đang đăng nhập...";
 
   try {
-    const res = await fetch("/api/config", {
+    const res  = await fetch("/api/auth/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-API-Secret": token
-      },
-      body: JSON.stringify({
-        Connect: true
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: user, password: pass })
     });
-
     const data = await res.json();
 
-    if (res.ok) {
-      showToast("Đã gửi lệnh Connect ✓", "success");
+    if (!res.ok) {
+      setAuthError(errEl, data.error || "Đăng nhập thất bại");
     } else {
-      showToast("Lỗi: " + (data.error || res.status), "error");
+      token    = data.token;
+      username = data.username;
+      localStorage.setItem("gloryvn_token", token);
+      localStorage.setItem("gloryvn_user",  username);
+      showPanel();
     }
+  } catch (e) {
+    setAuthError(errEl, "Không thể kết nối server");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Đăng nhập";
+  }
+}
 
+// ══════════════════════════════════════════════════════════════════
+//  REGISTER
+// ══════════════════════════════════════════════════════════════════
+async function doRegister() {
+  const user = document.getElementById("reg-user").value.trim();
+  const pass = document.getElementById("reg-pass").value;
+  const key  = document.getElementById("reg-key").value.trim().toUpperCase();
+  const errEl = document.getElementById("reg-error");
+  const btn   = document.getElementById("reg-btn");
+
+  errEl.classList.remove("show");
+  if (!user || !pass || !key) { setAuthError(errEl, "Vui lòng nhập đầy đủ thông tin"); return; }
+
+  btn.disabled = true;
+  btn.textContent = "Đang tạo tài khoản...";
+
+  try {
+    const res  = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: user, password: pass, key })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setAuthError(errEl, data.error || "Đăng ký thất bại");
+    } else {
+      token    = data.token;
+      username = data.username;
+      localStorage.setItem("gloryvn_token", token);
+      localStorage.setItem("gloryvn_user",  username);
+      showToast("Tạo tài khoản thành công! 🎉", "success");
+      showPanel();
+    }
+  } catch (e) {
+    setAuthError(errEl, "Không thể kết nối server");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Tạo tài khoản";
+  }
+}
+
+function logout() {
+  token    = "";
+  username = "";
+  config   = {};
+  localStorage.removeItem("gloryvn_token");
+  localStorage.removeItem("gloryvn_user");
+  showAuth();
+  document.getElementById("status-dot").classList.remove("online");
+}
+
+function setAuthError(el, msg) {
+  el.textContent = msg;
+  el.classList.add("show");
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  FETCH CONFIG
+// ══════════════════════════════════════════════════════════════════
+async function fetchConfig() {
+  if (!token) return;
+  try {
+    const res = await fetch("/api/config", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (res.status === 401) { logout(); showToast("Phiên đăng nhập hết hạn", "error"); return; }
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    config = await res.json();
+    document.getElementById("status-dot").classList.add("online");
+    renderPanel();
+    updateLastUpdated();
+  } catch (e) {
+    document.getElementById("status-dot").classList.remove("online");
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  SEND CONFIG CHANGE
+// ══════════════════════════════════════════════════════════════════
+async function sendToggle(key, value) {
+  const body = {};
+  body[key] = value;
+  try {
+    const res  = await fetch("/api/config", {
+      method: "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast("Lỗi: " + (data.error || res.status), "error");
+      config[key] = !value;
+      renderPanel();
+      return;
+    }
+    config = data.config;
+    renderPanel();
+    updateLastUpdated();
+    showToast(`${key}: ${value ? "ON ✓" : "OFF ✓"}`, "success");
+  } catch (e) {
+    showToast("Kết nối thất bại!", "error");
+  }
+}
+
+async function sendLinePosition(val) {
+  try {
+    const res  = await fetch("/api/config", {
+      method: "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ linePosition: val })
+    });
+    const data = await res.json();
+    if (res.ok) { config = data.config; showToast("linePosition: " + val, "success"); updateLastUpdated(); }
+    else showToast("Lỗi: " + (data.error || res.status), "error");
+  } catch (e) {
+    showToast("Kết nối thất bại!", "error");
+  }
+}
+
+async function connectClient() {
+  if (!token) { showToast("Bạn chưa đăng nhập!", "error"); return; }
+  try {
+    const res  = await fetch("/api/config", {
+      method: "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ Connect: true })
+    });
+    const data = await res.json();
+    if (res.ok) showToast("Đã gửi lệnh Connect ✓", "success");
+    else showToast("Lỗi: " + (data.error || res.status), "error");
   } catch (e) {
     showToast("Server không phản hồi!", "error");
   }
 }
 
+// ══════════════════════════════════════════════════════════════════
+//  RENDER PANEL
+// ══════════════════════════════════════════════════════════════════
+function renderPanel() {
+  const panel = document.getElementById("main-panel");
+  panel.innerHTML = "";
 
+  // Device info card
+  const hwid_bound = config._hwid_bound !== undefined ? config._hwid_bound : true;
+  const infoCard = document.createElement("div");
+  infoCard.className = "info-card";
+  infoCard.innerHTML = `
+    <div class="dot bound"></div>
+    <div class="info-text">
+      Đang kiểm soát thiết bị của <strong>${username}</strong>
+      — PC client sẽ nhận config ngay khi bật
+    </div>
+  `;
+  panel.appendChild(infoCard);
 
-  // ── Poll every 3s ─────────────────────────────────────────────────────────
-  fetchConfig();
-  pollTimer = setInterval(fetchConfig, 3000);
+  // Feature toggles
+  FEATURES.forEach(section => {
+    const sLabel = document.createElement("div");
+    sLabel.className = "section-label";
+    sLabel.textContent = section.section;
+    panel.appendChild(sLabel);
 
+    const card = document.createElement("div");
+    card.className = "card";
+    section.items.forEach(item => {
+      const isOn = !!config[item.key];
+      const row  = document.createElement("div");
+      row.className = "toggle-row";
+      row.innerHTML = `
+        <div class="toggle-info">
+          <span class="toggle-name">${item.name}</span>
+          <span class="toggle-desc">${item.desc}</span>
+        </div>
+        <label class="switch" onclick="event.stopPropagation()">
+          <input type="checkbox" ${isOn ? "checked" : ""} onchange="handleToggle('${item.key}', this.checked)" />
+          <span class="slider"></span>
+        </label>
+      `;
+      card.appendChild(row);
+    });
+    panel.appendChild(card);
+  });
 
- 
+  // Line position
+  const lpSection = document.createElement("div");
+  lpSection.className = "section-label";
+  lpSection.textContent = "📐 ESP Line Position";
+  panel.appendChild(lpSection);
 
+  const lpCard = document.createElement("div");
+  lpCard.className = "card";
+  const lineDisabled = !config.ESPLine;
+  lpCard.innerHTML = `
+    <div class="select-row">
+      <div class="toggle-info">
+        <span class="toggle-name">Line Position</span>
+        <span class="toggle-desc">Vị trí điểm xuất phát đường ESP Line</span>
+      </div>
+      <select id="line-position-select" onchange="handleLinePosition(this.value)" ${lineDisabled ? "disabled" : ""}>
+        <option value="Top"    ${config.linePosition === "Top"    ? "selected" : ""}>Top</option>
+        <option value="Bottom" ${config.linePosition === "Bottom" ? "selected" : ""}>Bottom</option>
+        <option value="Center" ${config.linePosition === "Center" ? "selected" : ""}>Center</option>
+      </select>
+    </div>
+  `;
+  panel.appendChild(lpCard);
 
+  // Connect button
+  const connectBtn = document.createElement("button");
+  connectBtn.className = "connect-btn";
+  connectBtn.onclick = connectClient;
+  connectBtn.textContent = "⚡ Connect Client";
+  panel.appendChild(connectBtn);
+
+  // Last update
+  const lu = document.createElement("div");
+  lu.id = "last-update";
+  panel.appendChild(lu);
+  updateLastUpdated();
+}
+
+function handleToggle(key, value) {
+  config[key] = value;
+  sendToggle(key, value);
+  renderPanel();
+}
+
+function handleLinePosition(val) {
+  sendLinePosition(val);
+}
+
+function updateLastUpdated() {
+  const el = document.getElementById("last-update");
+  if (!el) return;
+  if (config.last_updated) {
+    const d = new Date(config.last_updated + (config.last_updated.endsWith("Z") ? "" : "Z"));
+    el.textContent = "Cập nhật lúc: " + d.toLocaleTimeString("vi-VN");
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg, type) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "show " + (type || "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ""; }, 2500);
+}
+
+// Enter key support
+document.addEventListener("keydown", function(e) {
+  if (e.key !== "Enter") return;
+  const loginActive = document.getElementById("form-login").style.display !== "none";
+  if (loginActive && document.getElementById("auth-section").style.display !== "none") doLogin();
+});
 </script>
 </body>
 </html>
