@@ -69,6 +69,7 @@ def row_to_config(d: dict) -> dict:
     return {
         "Connect":          d.get("connect",          False),
         "AimbotNewEnabled": d.get("aimbot_enabled",   False),
+        "AimbotDelay":      round(float(d.get("aimbot_delay", 0.1)), 2),
         "ESPLine":          d.get("esp_line",         False),
         "ESPBox2":          d.get("esp_box2",         False),
         "ESPWukong":        d.get("esp_wukong",       False),
@@ -84,6 +85,7 @@ def row_to_config(d: dict) -> dict:
 KEY_MAP = {
     "Connect":          "connect",
     "AimbotNewEnabled": "aimbot_enabled",
+    "AimbotDelay":      "aimbot_delay",
     "ESPLine":          "esp_line",
     "ESPBox2":          "esp_box2",
     "ESPWukong":        "esp_wukong",
@@ -104,6 +106,7 @@ def get_or_create_config(user_id: str) -> dict:
         "user_id":       user_id,
         "connect":       False,
         "aimbot_enabled":False,
+        "aimbot_delay":  0.1,
         "esp_line":      False,
         "esp_box2":      False,
         "esp_wukong":    False,
@@ -312,10 +315,17 @@ def auth_me():
     if not res.data:
         return jsonify({"error": "User not found"}), 404
     u = res.data
+    hwid_raw = u.get("hwid") or ""
+    # Trả về HWID masked để hiển thị trên UI (không lộ full)
+    if hwid_raw:
+        hwid_display = hwid_raw[:4] + "****" + hwid_raw[-4:] if len(hwid_raw) > 8 else "****"
+    else:
+        hwid_display = None
     return jsonify({
         "user_id":    u["id"],
         "username":   u["username"],
-        "hwid_bound": bool(u.get("hwid")),
+        "hwid_bound": bool(hwid_raw),
+        "hwid_value": hwid_display,
         "is_active":  u.get("is_active", True),
         "last_seen":  u.get("last_seen"),
     })
@@ -456,6 +466,31 @@ def toggle_feature(feature):
     new_val = not cfg.get(feature, False)
     cfg     = patch_config(payload["user_id"], {feature: new_val})
     return jsonify({"ok": True, "feature": feature, "value": new_val})
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  CONFIG — Set float value (e.g. AimbotDelay)
+# ════════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/config/set", methods=["POST"])
+def set_config_value():
+    """
+    Web panel dùng để set giá trị float/string.
+    Body: { "key": "AimbotDelay", "value": 0.35 }
+    """
+    payload = decode_jwt(request)
+    if not payload:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data  = request.get_json(force=True) or {}
+    key   = data.get("key", "")
+    value = data.get("value")
+
+    if key not in KEY_MAP or value is None:
+        return jsonify({"error": "Invalid key or missing value"}), 400
+
+    cfg = patch_config(payload["user_id"], {key: value})
+    return jsonify({"ok": True, "config": cfg})
 
 
 # ════════════════════════════════════════════════════════════════════════════

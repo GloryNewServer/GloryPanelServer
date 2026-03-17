@@ -553,11 +553,18 @@ async function doRegister() {
 }
 
 function logout() {
-  token    = "";
-  username = "";
-  config   = {};
+  token     = "";
+  username  = "";
+  config    = {};
+  hwidBound = false;
   localStorage.removeItem("gloryvn_token");
   localStorage.removeItem("gloryvn_user");
+  // Reset toàn bộ input settings để không lộ data tài khoản cũ
+  ["hwid-input","new-username-input","chuser-pass-input",
+   "old-pass-input","new-pass-input","new-pass-confirm"].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { el.value = ""; el.disabled = false; }
+  });
   showAuth();
   document.getElementById("status-dot").classList.remove("online");
 }
@@ -636,24 +643,25 @@ async function sendLinePosition(val) {
   }
 }
 
-async function connectClient() {
-  if (!token) { showToast("Bạn chưa đăng nhập!", "error"); return; }
+async function handleAimbotDelay(val) {
   try {
-    const res  = await fetch("/api/config", {
+    const res = await fetch("/api/config/set", {
       method: "POST",
       headers: {
         "Content-Type":  "application/json",
         "Authorization": "Bearer " + token
       },
-      body: JSON.stringify({ Connect: true })
+      body: JSON.stringify({ key: "AimbotDelay", value: val })
     });
     const data = await res.json();
-    if (res.ok) showToast("Đã gửi lệnh Connect ✓", "success");
+    if (res.ok) { config = data.config; showToast("Delay: " + val.toFixed(2) + "s ✓", "success"); updateLastUpdated(); }
     else showToast("Lỗi: " + (data.error || res.status), "error");
   } catch (e) {
-    showToast("Server không phản hồi!", "error");
+    showToast("Kết nối thất bại!", "error");
   }
 }
+
+// connectClient đã xóa — device tự connect khi check HWID thành công
 
 // ══════════════════════════════════════════════════════════════════
 //  RENDER PANEL
@@ -703,6 +711,37 @@ function renderPanel() {
     panel.appendChild(card);
   });
 
+  // Aim Delay slider (chỉ hiện khi AimbotNewEnabled = true)
+  if (config.AimbotNewEnabled) {
+    const delaySection = document.createElement("div");
+    delaySection.className = "section-label";
+    delaySection.textContent = "⏱️ Aimbot Delay";
+    panel.appendChild(delaySection);
+
+    const delayCard = document.createElement("div");
+    delayCard.className = "card";
+    const delayVal = parseFloat(config.AimbotDelay ?? 0.1).toFixed(2);
+    delayCard.innerHTML = `
+      <div class="select-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <div class="toggle-info">
+          <span class="toggle-name">Delay: <strong id="delay-display">${delayVal}s</strong></span>
+          <span class="toggle-desc">Thời gian giữ trước khi aimbot khoá mục tiêu (0.1 – 1.0s)</span>
+        </div>
+        <input type="range" id="aimbot-delay-slider"
+          min="0.1" max="1.0" step="0.05"
+          value="${delayVal}"
+          style="width:100%;accent-color:var(--purple);cursor:pointer;"
+          oninput="document.getElementById('delay-display').textContent=parseFloat(this.value).toFixed(2)+'s'"
+          onchange="handleAimbotDelay(parseFloat(this.value))"
+        />
+        <div style="display:flex;justify-content:space-between;width:100%;font-size:0.72rem;color:var(--muted);">
+          <span>0.1s</span><span>0.5s</span><span>1.0s</span>
+        </div>
+      </div>
+    `;
+    panel.appendChild(delayCard);
+  }
+
   // Line position
   const lpSection = document.createElement("div");
   lpSection.className = "section-label";
@@ -726,13 +765,6 @@ function renderPanel() {
     </div>
   `;
   panel.appendChild(lpCard);
-
-  // Connect button
-  const connectBtn = document.createElement("button");
-  connectBtn.className = "connect-btn";
-  connectBtn.onclick = connectClient;
-  connectBtn.textContent = "⚡ Connect Client";
-  panel.appendChild(connectBtn);
 
   // Last update
   const lu = document.createElement("div");
@@ -778,34 +810,50 @@ function showToast(msg, type) {
 
 async function refreshHwidStatus() {
   if (!token) return;
+  // Reset trạng thái trước khi fetch để tránh hiện data cũ
+  hwidBound = false;
+  updateHwidUI(null);
   try {
     const res  = await fetch("/api/auth/me", { headers: { "Authorization": "Bearer " + token } });
     if (!res.ok) return;
     const data = await res.json();
     hwidBound  = !!data.hwid_bound;
-    updateHwidUI();
+    // hwid_value chỉ có nếu server trả về (xem Server.py patch bên dưới)
+    updateHwidUI(data.hwid_value || null);
   } catch (_) {}
 }
 
-function updateHwidUI() {
-  const dot     = document.getElementById("hwid-dot");
-  const txt     = document.getElementById("hwid-status-text");
-  const inp     = document.getElementById("hwid-input");
-  const btn     = document.getElementById("hwid-btn");
+function updateHwidUI(hwidValue) {
+  const dot  = document.getElementById("hwid-dot");
+  const txt  = document.getElementById("hwid-status-text");
+  const inp  = document.getElementById("hwid-input");
+  const btn  = document.getElementById("hwid-btn");
   if (!dot) return;
   if (hwidBound) {
-    dot.className      = "dot bound";
-    txt.innerHTML      = "HWID đã được <strong>gán thành công</strong> vào tài khoản này";
-    inp.disabled       = true;
-    inp.placeholder    = "HWID đã bị khoá — không thể thay đổi";
-    btn.disabled       = true;
-    btn.textContent    = "✅ Đã gán";
+    dot.className   = "dot bound";
+    txt.innerHTML   = "HWID đã được <strong>gán thành công</strong> vào tài khoản này";
+    // Hiển thị HWID masked: giữ 4 ký tự đầu + 4 ký tự cuối, giữa là ***
+    if (hwidValue) {
+      const h = String(hwidValue);
+      const masked = h.length > 8
+        ? h.slice(0, 4) + "****" + h.slice(-4)
+        : "****";
+      inp.value       = masked;
+    } else {
+      inp.value       = "";
+      inp.placeholder = "HWID đã bị khoá — không thể thay đổi";
+    }
+    inp.disabled    = true;
+    btn.disabled    = true;
+    btn.textContent = "✅ Đã gán";
   } else {
-    dot.className      = "dot unbound";
-    txt.textContent    = "Chưa có HWID — điền HWID bên dưới để gán";
-    inp.disabled       = false;
-    btn.disabled       = false;
-    btn.textContent    = "🔗 Gán HWID";
+    dot.className   = "dot unbound";
+    txt.textContent = "Chưa có HWID — điền HWID bên dưới để gán";
+    inp.value       = "";
+    inp.placeholder = "Paste HWID vào đây...";
+    inp.disabled    = false;
+    btn.disabled    = false;
+    btn.textContent = "🔗 Gán HWID";
   }
 }
 
@@ -830,7 +878,7 @@ async function doBindHwid() {
     const data = await res.json();
     if (res.ok) {
       hwidBound = true;
-      updateHwidUI();
+      updateHwidUI(hwid);
       setSettingsMsg("hwid-msg", "✅ Gán HWID thành công!", "success");
     } else {
       setSettingsMsg("hwid-msg", data.error || "Lỗi không xác định", "error");
