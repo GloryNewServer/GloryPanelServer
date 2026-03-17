@@ -119,6 +119,7 @@
     }
     .toggle-row:last-child { border-bottom: none; }
     .toggle-row:hover { background: rgba(157,122,229,0.06); }
+    .toggle-row.disabled-row { opacity: 0.38; pointer-events: none; }
     .toggle-info { display: flex; flex-direction: column; gap: 2px; }
     .toggle-name { font-size: 0.95rem; font-weight: 500; color: var(--text); }
     .toggle-desc { font-size: 0.75rem; color: var(--muted); }
@@ -153,6 +154,46 @@
     .info-card .dot.unbound { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
     .info-card .info-text { font-size: 0.82rem; color: var(--muted); }
     .info-card .info-text strong { color: var(--text); }
+
+    /* ── Key Expiry Banner ──────────────────────────────────────── */
+    #expiry-banner {
+      display: none;
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      border: 1px solid;
+    }
+    #expiry-banner.show { display: block; }
+    #expiry-banner.expired {
+      background: rgba(248,113,113,0.1);
+      border-color: rgba(248,113,113,0.4);
+      color: var(--red);
+    }
+    #expiry-banner.warning {
+      background: rgba(251,191,36,0.08);
+      border-color: rgba(251,191,36,0.35);
+      color: var(--amber);
+    }
+    #expiry-banner.lifetime {
+      background: rgba(74,222,128,0.07);
+      border-color: rgba(74,222,128,0.3);
+      color: var(--green);
+    }
+    #expiry-banner .banner-title {
+      font-weight: 700; font-size: 0.92rem; margin-bottom: 4px;
+    }
+
+    /* ── Expiry info row (inside info-card) ─────────────────────── */
+    .expiry-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600;
+      border: 1px solid;
+    }
+    .expiry-chip.lifetime { background: rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.3); color: var(--green); }
+    .expiry-chip.active   { background: rgba(157,122,229,0.1); border-color: rgba(157,122,229,0.3); color: var(--purple-light); }
+    .expiry-chip.warning  { background: rgba(251,191,36,0.1);  border-color: rgba(251,191,36,0.3);  color: var(--amber); }
+    .expiry-chip.expired  { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.3); color: var(--red); }
 
     /* ── Connect button ─────────────────────────────────────────── */
     .connect-btn {
@@ -238,6 +279,13 @@
     .hwid-info .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
     .hwid-info .dot.bound   { background: var(--green); box-shadow: 0 0 6px var(--green); }
     .hwid-info .dot.unbound { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+
+    /* ── Key Info Card (settings tab) ──────────────────────────── */
+    .key-info-row {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    }
+    .key-info-row .key-label { font-size: 0.82rem; color: var(--muted); }
+    .key-info-row .key-value { font-size: 0.88rem; font-weight: 600; color: var(--text); }
 
     /* ── Toast ──────────────────────────────────────────────────── */
     #toast {
@@ -333,6 +381,30 @@
   <!-- View: Settings -->
   <div class="panel-view" id="pview-settings">
 
+    <!-- Key / Subscription Info -->
+    <div class="settings-card">
+      <div class="settings-section-title">🔑 Thông Tin Key & Hạn Dùng</div>
+      <div class="settings-row">
+        <div id="key-expiry-info-box" style="display:flex;flex-direction:column;gap:8px;">
+          <div class="key-info-row">
+            <span class="key-label">Trạng thái</span>
+            <span class="key-value" id="key-status-text">Đang tải...</span>
+          </div>
+          <div class="key-info-row">
+            <span class="key-label">Hết hạn lúc</span>
+            <span class="key-value" id="key-expires-at-text">—</span>
+          </div>
+          <div class="key-info-row">
+            <span class="key-label">Còn lại</span>
+            <span class="key-value" id="key-remaining-text">—</span>
+          </div>
+        </div>
+        <p style="font-size:0.75rem;color:var(--muted);line-height:1.5;margin-top:4px;">
+          ⚠️ Khi hết hạn, tài khoản sẽ ngừng hoạt động cho đến khi được gia hạn bởi admin.
+        </p>
+      </div>
+    </div>
+
     <!-- HWID Binding -->
     <div class="settings-card">
       <div class="settings-section-title">🔒 Liên Kết HWID</div>
@@ -418,7 +490,13 @@ let token    = localStorage.getItem("gloryvn_token") || "";
 let username = localStorage.getItem("gloryvn_user")  || "";
 let config   = {};
 let pollTimer = null;
-let hwidBound = false;   // trạng thái HWID của user hiện tại
+let hwidBound = false;
+let expiryState = {   // trạng thái hạn key
+  is_expired:      false,
+  is_lifetime:     false,
+  expires_at:      null,
+  remaining_hours: null,
+};
 
 // ══════════════════════════════════════════════════════════════════
 //  PANEL TABS
@@ -428,7 +506,10 @@ function switchPanelTab(tab) {
     document.getElementById("ptab-" + t).classList.toggle("active", t === tab);
     document.getElementById("pview-" + t).classList.toggle("active", t === tab);
   });
-  if (tab === "settings") refreshHwidStatus();
+  if (tab === "settings") {
+    refreshHwidStatus();
+    refreshKeyExpiryUI();
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -500,6 +581,8 @@ async function doLogin() {
       username = data.username;
       localStorage.setItem("gloryvn_token", token);
       localStorage.setItem("gloryvn_user",  username);
+      // Lưu expiry từ login response
+      applyExpiryFromData(data);
       showPanel();
     }
   } catch (e) {
@@ -541,6 +624,7 @@ async function doRegister() {
       username = data.username;
       localStorage.setItem("gloryvn_token", token);
       localStorage.setItem("gloryvn_user",  username);
+      applyExpiryFromData(data);
       showToast("Tạo tài khoản thành công! 🎉", "success");
       showPanel();
     }
@@ -557,9 +641,9 @@ function logout() {
   username  = "";
   config    = {};
   hwidBound = false;
+  expiryState = { is_expired: false, is_lifetime: false, expires_at: null, remaining_hours: null };
   localStorage.removeItem("gloryvn_token");
   localStorage.removeItem("gloryvn_user");
-  // Reset toàn bộ input settings để không lộ data tài khoản cũ
   ["hwid-input","new-username-input","chuser-pass-input",
    "old-pass-input","new-pass-input","new-pass-confirm"].forEach(function(id) {
     var el = document.getElementById(id);
@@ -575,6 +659,53 @@ function setAuthError(el, msg) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+//  EXPIRY STATE
+// ══════════════════════════════════════════════════════════════════
+function applyExpiryFromData(data) {
+  expiryState.is_expired      = !!data.is_expired;
+  expiryState.is_lifetime     = !!data.is_lifetime;
+  expiryState.expires_at      = data.expires_at || null;
+  expiryState.remaining_hours = data.remaining_hours != null ? data.remaining_hours : null;
+}
+
+function applyExpiryFromConfig(cfg) {
+  if (cfg._expired !== undefined) expiryState.is_expired      = !!cfg._expired;
+  if (cfg._is_lifetime !== undefined) expiryState.is_lifetime = !!cfg._is_lifetime;
+  if (cfg._expires_at !== undefined)  expiryState.expires_at  = cfg._expires_at || null;
+  if (cfg._remaining_hours !== undefined) expiryState.remaining_hours = cfg._remaining_hours;
+}
+
+function formatRemainingHours(hours) {
+  if (hours === null || hours === undefined) return "—";
+  if (hours <= 0) return "Đã hết hạn";
+  const d = Math.floor(hours / 24);
+  const h = Math.floor(hours % 24);
+  const m = Math.floor((hours * 60) % 60);
+  if (d > 0) return `${d} ngày ${h} giờ ${m} phút`;
+  if (h > 0) return `${h} giờ ${m} phút`;
+  return `${m} phút`;
+}
+
+function formatExpiresAt(isoStr) {
+  if (!isoStr) return "—";
+  try {
+    // Chuẩn hóa: bỏ offset +00:00 / -00:00 / +07:00 ... rồi gắn Z
+    // Hoặc nếu đã có Z thì giữ nguyên
+    let s = isoStr.trim();
+    // Thay thế offset dạng +HH:MM hoặc -HH:MM ở cuối thành Z (đã là UTC từ server)
+    s = s.replace(/([+-]\d{2}:\d{2})$/, "Z");
+    // Nếu chưa có Z và chưa có offset thì thêm Z
+    if (!s.endsWith("Z")) s += "Z";
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return isoStr; // fallback hiện raw string
+    return d.toLocaleString("vi-VN", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit"
+    });
+  } catch(_) { return isoStr; }
+}
+
+// ══════════════════════════════════════════════════════════════════
 //  FETCH CONFIG
 // ══════════════════════════════════════════════════════════════════
 async function fetchConfig() {
@@ -586,6 +717,10 @@ async function fetchConfig() {
     if (res.status === 401) { logout(); showToast("Phiên đăng nhập hết hạn", "error"); return; }
     if (!res.ok) throw new Error("HTTP " + res.status);
     config = await res.json();
+
+    // Cập nhật trạng thái hạn key từ config
+    applyExpiryFromConfig(config);
+
     document.getElementById("status-dot").classList.add("online");
     renderPanel();
     updateLastUpdated();
@@ -598,6 +733,12 @@ async function fetchConfig() {
 //  SEND CONFIG CHANGE
 // ══════════════════════════════════════════════════════════════════
 async function sendToggle(key, value) {
+  // Không cho thay đổi nếu hết hạn
+  if (expiryState.is_expired) {
+    showToast("Key đã hết hạn — không thể thay đổi cấu hình", "error");
+    renderPanel();
+    return;
+  }
   const body = {};
   body[key] = value;
   try {
@@ -611,12 +752,19 @@ async function sendToggle(key, value) {
     });
     const data = await res.json();
     if (!res.ok) {
+      if (data.expired) {
+        expiryState.is_expired = true;
+        showToast("Key đã hết hạn!", "error");
+        renderPanel();
+        return;
+      }
       showToast("Lỗi: " + (data.error || res.status), "error");
       config[key] = !value;
       renderPanel();
       return;
     }
     config = data.config;
+    applyExpiryFromConfig(config);
     renderPanel();
     updateLastUpdated();
     showToast(`${key}: ${value ? "ON ✓" : "OFF ✓"}`, "success");
@@ -626,6 +774,10 @@ async function sendToggle(key, value) {
 }
 
 async function sendLinePosition(val) {
+  if (expiryState.is_expired) {
+    showToast("Key đã hết hạn — không thể thay đổi cấu hình", "error");
+    return;
+  }
   try {
     const res  = await fetch("/api/config", {
       method: "POST",
@@ -636,7 +788,7 @@ async function sendLinePosition(val) {
       body: JSON.stringify({ linePosition: val })
     });
     const data = await res.json();
-    if (res.ok) { config = data.config; showToast("linePosition: " + val, "success"); updateLastUpdated(); }
+    if (res.ok) { config = data.config; applyExpiryFromConfig(config); showToast("linePosition: " + val, "success"); updateLastUpdated(); }
     else showToast("Lỗi: " + (data.error || res.status), "error");
   } catch (e) {
     showToast("Kết nối thất bại!", "error");
@@ -644,6 +796,10 @@ async function sendLinePosition(val) {
 }
 
 async function handleAimbotDelay(val) {
+  if (expiryState.is_expired) {
+    showToast("Key đã hết hạn — không thể thay đổi cấu hình", "error");
+    return;
+  }
   try {
     const res = await fetch("/api/config/set", {
       method: "POST",
@@ -654,36 +810,65 @@ async function handleAimbotDelay(val) {
       body: JSON.stringify({ key: "AimbotDelay", value: val })
     });
     const data = await res.json();
-    if (res.ok) { config = data.config; showToast("Delay: " + val.toFixed(2) + "s ✓", "success"); updateLastUpdated(); }
+    if (res.ok) { config = data.config; applyExpiryFromConfig(config); showToast("Delay: " + val.toFixed(2) + "s ✓", "success"); updateLastUpdated(); }
     else showToast("Lỗi: " + (data.error || res.status), "error");
   } catch (e) {
     showToast("Kết nối thất bại!", "error");
   }
 }
 
-// connectClient đã xóa — device tự connect khi check HWID thành công
-
 // ══════════════════════════════════════════════════════════════════
-//  RENDER PANEL
+//  RENDER PANEL (Control tab)
 // ══════════════════════════════════════════════════════════════════
 function renderPanel() {
   const panel = document.getElementById("pview-control");
   panel.innerHTML = "";
 
-  // Device info card
-  const hwid_bound = config._hwid_bound !== undefined ? config._hwid_bound : true;
+  const isExpired = expiryState.is_expired;
+
+  // ── Expiry Banner ──────────────────────────────────────────────
+  const banner = document.createElement("div");
+  banner.id = "expiry-banner";
+  if (isExpired) {
+    banner.className = "show expired";
+    banner.innerHTML = `
+      <div class="banner-title">⏰ Key đã hết hạn!</div>
+      <div>Tài khoản của bạn đã hết hạn sử dụng. Tất cả chức năng đã bị tắt.<br>
+      Vui lòng liên hệ admin để gia hạn key.</div>
+    `;
+  } else if (!expiryState.is_lifetime && expiryState.remaining_hours !== null && expiryState.remaining_hours <= 24) {
+    banner.className = "show warning";
+    banner.innerHTML = `
+      <div class="banner-title">⚠️ Key sắp hết hạn!</div>
+      <div>Còn <strong>${formatRemainingHours(expiryState.remaining_hours)}</strong> — hãy gia hạn sớm để không bị gián đoạn.</div>
+    `;
+  } else if (expiryState.is_lifetime) {
+    banner.className = "show lifetime";
+    banner.innerHTML = `<div class="banner-title">♾️ Key vĩnh viễn — không giới hạn thời gian sử dụng</div>`;
+  } else if (expiryState.expires_at) {
+    banner.className = "show";
+    banner.style.cssText = "background:rgba(157,122,229,0.07);border-color:rgba(157,122,229,0.25);color:var(--purple-light);";
+    banner.innerHTML = `
+      <div class="banner-title">✅ Key đang hoạt động</div>
+      <div>Hết hạn lúc: <strong>${formatExpiresAt(expiryState.expires_at)}</strong> 
+      — còn lại <strong>${formatRemainingHours(expiryState.remaining_hours)}</strong></div>
+    `;
+  }
+  panel.appendChild(banner);
+
+  // ── Device info card ───────────────────────────────────────────
   const infoCard = document.createElement("div");
   infoCard.className = "info-card";
   infoCard.innerHTML = `
-    <div class="dot bound"></div>
+    <div class="dot ${isExpired ? "unbound" : "bound"}"></div>
     <div class="info-text">
       Đang kiểm soát thiết bị của <strong>${username}</strong>
-      — PC client sẽ nhận config ngay khi bật
+      ${isExpired ? "— <span style='color:var(--red)'>Key hết hạn</span>" : "— PC client sẽ nhận config ngay khi bật"}
     </div>
   `;
   panel.appendChild(infoCard);
 
-  // Feature toggles
+  // ── Feature toggles ────────────────────────────────────────────
   FEATURES.forEach(section => {
     const sLabel = document.createElement("div");
     sLabel.className = "section-label";
@@ -695,26 +880,29 @@ function renderPanel() {
     section.items.forEach(item => {
       const isOn = !!config[item.key];
       const row  = document.createElement("div");
-      row.className = "toggle-row";
+      // Khi hết hạn: disable toàn bộ toggle
+      row.className = "toggle-row" + (isExpired ? " disabled-row" : "");
       row.innerHTML = `
         <div class="toggle-info">
           <span class="toggle-name">${item.name}</span>
           <span class="toggle-desc">${item.desc}</span>
         </div>
         <label class="switch" onclick="event.stopPropagation()">
-          <input type="checkbox" ${isOn ? "checked" : ""} onchange="handleToggle('${item.key}', this.checked)" />
+          <input type="checkbox" ${isOn ? "checked" : ""} ${isExpired ? "disabled" : ""}
+            onchange="handleToggle('${item.key}', this.checked)" />
           <span class="slider"></span>
         </label>
       `;
       card.appendChild(row);
 
-      // Sau AimbotNewEnabled → chèn slider Delay ngay bên dưới trong cùng card
+      // Slider Delay
       if (item.key === "AimbotNewEnabled") {
         const delayVal = parseFloat(config.AimbotDelay ?? 0.1).toFixed(2);
         const delayRow = document.createElement("div");
-        delayRow.className = "toggle-row";
+        const delayDisabled = !config.AimbotNewEnabled || isExpired;
+        delayRow.className = "toggle-row" + (isExpired ? " disabled-row" : "");
         delayRow.style.cssText = "flex-direction:column;align-items:flex-start;gap:10px;cursor:default;";
-        if (!config.AimbotNewEnabled) delayRow.style.opacity = "0.4";
+        if (delayDisabled) delayRow.style.opacity = "0.4";
         delayRow.innerHTML = `
           <div class="toggle-info">
             <span class="toggle-name">Delay: <strong id="delay-display">${delayVal}s</strong></span>
@@ -723,7 +911,7 @@ function renderPanel() {
           <input type="range" id="aimbot-delay-slider"
             min="0.1" max="1.0" step="0.05"
             value="${delayVal}"
-            ${!config.AimbotNewEnabled ? "disabled" : ""}
+            ${delayDisabled ? "disabled" : ""}
             style="width:100%;accent-color:var(--purple);cursor:pointer;"
             oninput="document.getElementById('delay-display').textContent=parseFloat(this.value).toFixed(2)+'s'"
             onchange="handleAimbotDelay(parseFloat(this.value))"
@@ -738,9 +926,7 @@ function renderPanel() {
     panel.appendChild(card);
   });
 
-  // (Delay slider đã được chèn trong card AIM ở trên)
-
-  // Line position
+  // ── Line position ──────────────────────────────────────────────
   const lpSection = document.createElement("div");
   lpSection.className = "section-label";
   lpSection.textContent = "📐 ESP Line Position";
@@ -748,7 +934,7 @@ function renderPanel() {
 
   const lpCard = document.createElement("div");
   lpCard.className = "card";
-  const lineDisabled = !config.ESPLine;
+  const lineDisabled = !config.ESPLine || isExpired;
   lpCard.innerHTML = `
     <div class="select-row">
       <div class="toggle-info">
@@ -764,7 +950,7 @@ function renderPanel() {
   `;
   panel.appendChild(lpCard);
 
-  // Last update
+  // ── Last update ────────────────────────────────────────────────
   const lu = document.createElement("div");
   lu.id = "last-update";
   panel.appendChild(lu);
@@ -774,7 +960,6 @@ function renderPanel() {
 function handleToggle(key, value) {
   config[key] = value;
   sendToggle(key, value);
-  renderPanel();
 }
 
 function handleLinePosition(val) {
@@ -787,6 +972,36 @@ function updateLastUpdated() {
   if (config.last_updated) {
     const d = new Date(config.last_updated + (config.last_updated.endsWith("Z") ? "" : "Z"));
     el.textContent = "Cập nhật lúc: " + d.toLocaleTimeString("vi-VN");
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  KEY EXPIRY UI (Settings tab)
+// ══════════════════════════════════════════════════════════════════
+function refreshKeyExpiryUI() {
+  const statusEl    = document.getElementById("key-status-text");
+  const expiresEl   = document.getElementById("key-expires-at-text");
+  const remainingEl = document.getElementById("key-remaining-text");
+  if (!statusEl) return;
+
+  if (expiryState.is_lifetime) {
+    statusEl.innerHTML    = '<span class="expiry-chip lifetime">♾️ Vĩnh viễn</span>';
+    expiresEl.textContent = "Không giới hạn";
+    remainingEl.textContent = "Không giới hạn";
+  } else if (expiryState.is_expired) {
+    statusEl.innerHTML    = '<span class="expiry-chip expired">⏰ Hết hạn</span>';
+    expiresEl.textContent = formatExpiresAt(expiryState.expires_at);
+    remainingEl.innerHTML = '<span style="color:var(--red);font-weight:600">Đã hết hạn</span>';
+  } else if (expiryState.expires_at) {
+    const rem = expiryState.remaining_hours;
+    const chipClass = rem !== null && rem <= 24 ? "warning" : "active";
+    statusEl.innerHTML    = `<span class="expiry-chip ${chipClass}">✅ Đang hoạt động</span>`;
+    expiresEl.textContent = formatExpiresAt(expiryState.expires_at);
+    remainingEl.textContent = formatRemainingHours(rem);
+  } else {
+    statusEl.innerHTML    = '<span class="expiry-chip active">✅ Hoạt động</span>';
+    expiresEl.textContent = "—";
+    remainingEl.textContent = "—";
   }
 }
 
@@ -808,7 +1023,6 @@ function showToast(msg, type) {
 
 async function refreshHwidStatus() {
   if (!token) return;
-  // Reset trạng thái trước khi fetch để tránh hiện data cũ
   hwidBound = false;
   updateHwidUI(null);
   try {
@@ -816,7 +1030,9 @@ async function refreshHwidStatus() {
     if (!res.ok) return;
     const data = await res.json();
     hwidBound  = !!data.hwid_bound;
-    // hwid_value chỉ có nếu server trả về (xem Server.py patch bên dưới)
+    // Cập nhật expiry từ /me
+    applyExpiryFromData(data);
+    refreshKeyExpiryUI();
     updateHwidUI(data.hwid_value || null);
   } catch (_) {}
 }
@@ -830,15 +1046,12 @@ function updateHwidUI(hwidValue) {
   if (hwidBound) {
     dot.className   = "dot bound";
     txt.innerHTML   = "HWID đã được <strong>gán thành công</strong> vào tài khoản này";
-    // Hiển thị HWID masked: giữ 4 ký tự đầu + 4 ký tự cuối, giữa là ***
     if (hwidValue) {
       const h = String(hwidValue);
-      const masked = h.length > 8
-        ? h.slice(0, 4) + "****" + h.slice(-4)
-        : "****";
-      inp.value       = masked;
+      const masked = h.length > 8 ? h.slice(0, 4) + "****" + h.slice(-4) : "****";
+      inp.value = masked;
     } else {
-      inp.value       = "";
+      inp.value = "";
       inp.placeholder = "HWID đã bị khoá — không thể thay đổi";
     }
     inp.disabled    = true;
