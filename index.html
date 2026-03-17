@@ -707,40 +707,38 @@ function renderPanel() {
         </label>
       `;
       card.appendChild(row);
+
+      // Sau AimbotNewEnabled → chèn slider Delay ngay bên dưới trong cùng card
+      if (item.key === "AimbotNewEnabled") {
+        const delayVal = parseFloat(config.AimbotDelay ?? 0.1).toFixed(2);
+        const delayRow = document.createElement("div");
+        delayRow.className = "toggle-row";
+        delayRow.style.cssText = "flex-direction:column;align-items:flex-start;gap:10px;cursor:default;";
+        if (!config.AimbotNewEnabled) delayRow.style.opacity = "0.4";
+        delayRow.innerHTML = `
+          <div class="toggle-info">
+            <span class="toggle-name">Delay: <strong id="delay-display">${delayVal}s</strong></span>
+            <span class="toggle-desc">Thời gian giữ trước khi aimbot khoá mục tiêu (0.1 – 1.0s)</span>
+          </div>
+          <input type="range" id="aimbot-delay-slider"
+            min="0.1" max="1.0" step="0.05"
+            value="${delayVal}"
+            ${!config.AimbotNewEnabled ? "disabled" : ""}
+            style="width:100%;accent-color:var(--purple);cursor:pointer;"
+            oninput="document.getElementById('delay-display').textContent=parseFloat(this.value).toFixed(2)+'s'"
+            onchange="handleAimbotDelay(parseFloat(this.value))"
+          />
+          <div style="display:flex;justify-content:space-between;width:100%;font-size:0.72rem;color:var(--muted);">
+            <span>0.1s</span><span>0.5s</span><span>1.0s</span>
+          </div>
+        `;
+        card.appendChild(delayRow);
+      }
     });
     panel.appendChild(card);
   });
 
-  // Aim Delay slider (chỉ hiện khi AimbotNewEnabled = true)
-  if (config.AimbotNewEnabled) {
-    const delaySection = document.createElement("div");
-    delaySection.className = "section-label";
-    delaySection.textContent = "⏱️ Aimbot Delay";
-    panel.appendChild(delaySection);
-
-    const delayCard = document.createElement("div");
-    delayCard.className = "card";
-    const delayVal = parseFloat(config.AimbotDelay ?? 0.1).toFixed(2);
-    delayCard.innerHTML = `
-      <div class="select-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
-        <div class="toggle-info">
-          <span class="toggle-name">Delay: <strong id="delay-display">${delayVal}s</strong></span>
-          <span class="toggle-desc">Thời gian giữ trước khi aimbot khoá mục tiêu (0.1 – 1.0s)</span>
-        </div>
-        <input type="range" id="aimbot-delay-slider"
-          min="0.1" max="1.0" step="0.05"
-          value="${delayVal}"
-          style="width:100%;accent-color:var(--purple);cursor:pointer;"
-          oninput="document.getElementById('delay-display').textContent=parseFloat(this.value).toFixed(2)+'s'"
-          onchange="handleAimbotDelay(parseFloat(this.value))"
-        />
-        <div style="display:flex;justify-content:space-between;width:100%;font-size:0.72rem;color:var(--muted);">
-          <span>0.1s</span><span>0.5s</span><span>1.0s</span>
-        </div>
-      </div>
-    `;
-    panel.appendChild(delayCard);
-  }
+  // (Delay slider đã được chèn trong card AIM ở trên)
 
   // Line position
   const lpSection = document.createElement("div");
