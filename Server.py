@@ -188,6 +188,7 @@ def row_to_config(d: dict) -> dict:
         "ESPInfo":          d.get("esp_info",         False),
         "ESPSkeleton":      d.get("esp_skeleton",     False),
         "ESPREFRESH":       d.get("esp_refresh",      False),
+        "StreamMode":       d.get("stream_mode", True),
         "FixEsp":           d.get("fix_esp",          True),
         "linePosition":     d.get("line_position",    "Top"),
         "last_updated":     d.get("last_updated",     ""),
@@ -206,6 +207,7 @@ KEY_MAP = {
     "ESPREFRESH":       "esp_refresh",
     "FixEsp":           "fix_esp",
     "linePosition":     "line_position",
+    "StreamMode": "stream_mode",
 }
 
 EXPIRED_CONFIG = {
@@ -225,6 +227,7 @@ def get_or_create_config(user_id: str) -> dict:
         "aimbot_delay": 0.1, "esp_line": False, "esp_box2": False,
         "esp_wukong": False, "esp_info": False, "esp_skeleton": False,
         "esp_refresh": False, "fix_esp": True, "line_position": "Top",
+        "stream_mode": False,
     }).execute()
     return get_or_create_config(user_id)
 
