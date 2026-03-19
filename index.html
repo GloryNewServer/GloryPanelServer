@@ -306,6 +306,10 @@
       animation: spin 0.7s linear infinite; display: inline-block;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pc-pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--green); }
+      50%       { opacity: 0.5; box-shadow: 0 0 2px var(--green); }
+    }
     #loading { text-align: center; padding: 40px 0; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 12px; }
   </style>
 </head>
@@ -496,7 +500,9 @@ let token    = localStorage.getItem("gloryvn_token") || "";
 let username = localStorage.getItem("gloryvn_user")  || "";
 let config   = {};
 let pollTimer = null;
-let hwidBound = false;
+let hwidBound  = false;
+let isLocked   = false;
+let isPcOnline = false;
 let expiryState = {   // trạng thái hạn key
   is_expired:      false,
   is_lifetime:     false,
@@ -645,8 +651,12 @@ async function doRegister() {
 function logout() {
   token     = "";
   username  = "";
-  config    = {};
-  hwidBound = false;
+  config     = {};
+  hwidBound  = false;
+  isLocked   = false;
+  isPcOnline = false;
+  const ov = document.getElementById("lock-overlay");
+  if (ov) ov.classList.remove("show");
   expiryState = { is_expired: false, is_lifetime: false, expires_at: null, remaining_hours: null };
   localStorage.removeItem("gloryvn_token");
   localStorage.removeItem("gloryvn_user");
@@ -675,10 +685,29 @@ function applyExpiryFromData(data) {
 }
 
 function applyExpiryFromConfig(cfg) {
+  if (cfg._locked !== undefined) {
+    isLocked = !!cfg._locked;
+    const ov = document.getElementById("lock-overlay");
+    if (ov) { isLocked ? ov.classList.add("show") : ov.classList.remove("show"); }
+  }
+  if (cfg._pc_online !== undefined) {
+    isPcOnline = !!cfg._pc_online;
+    updatePcOnlineUI();
+  }
   if (cfg._expired !== undefined) expiryState.is_expired      = !!cfg._expired;
   if (cfg._is_lifetime !== undefined) expiryState.is_lifetime = !!cfg._is_lifetime;
   if (cfg._expires_at !== undefined)  expiryState.expires_at  = cfg._expires_at || null;
   if (cfg._remaining_hours !== undefined) expiryState.remaining_hours = cfg._remaining_hours;
+}
+
+function updatePcOnlineUI() {
+  const el = document.getElementById("pc-online-badge");
+  if (!el) return;
+  if (isPcOnline) {
+    el.innerHTML = '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:0.72rem;font-weight:700;border:1px solid rgba(74,222,128,0.35);background:rgba(74,222,128,0.08);color:var(--green)"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pc-pulse 2s ease-in-out infinite;display:inline-block"></span>PC Online</span>';
+  } else {
+    el.innerHTML = '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:0.72rem;font-weight:700;border:1px solid var(--border);background:rgba(255,255,255,0.02);color:var(--muted2)"><span style="width:7px;height:7px;border-radius:50%;background:var(--muted2);display:inline-block"></span>PC Offline</span>';
+  }
 }
 
 function formatRemainingHours(hours) {
@@ -831,6 +860,15 @@ function renderPanel() {
   panel.innerHTML = "";
 
   const isExpired = expiryState.is_expired;
+  const locked    = isLocked;
+
+  // ── Lock Banner ────────────────────────────────────────────────
+  if (locked) {
+    const lb = document.createElement("div");
+    lb.style.cssText = "border-radius:var(--radius);padding:16px 18px;font-size:0.88rem;line-height:1.6;border:1px solid rgba(248,113,113,0.4);background:rgba(248,113,113,0.08);color:var(--red);";
+    lb.innerHTML = '<div style="font-weight:700;font-size:0.95rem;margin-bottom:4px">🔒 Tài khoản đã bị khóa</div><div>Tất cả chức năng đã bị đình chỉ bởi quản trị viên. Liên hệ admin để được hỗ trợ.</div>';
+    panel.appendChild(lb);
+  }
 
   // ── Expiry Banner ──────────────────────────────────────────────
   const banner = document.createElement("div");
@@ -865,14 +903,19 @@ function renderPanel() {
   // ── Device info card ───────────────────────────────────────────
   const infoCard = document.createElement("div");
   infoCard.className = "info-card";
+  infoCard.style.cssText = "flex-wrap:wrap;gap:10px;";
   infoCard.innerHTML = `
-    <div class="dot ${isExpired ? "unbound" : "bound"}"></div>
-    <div class="info-text">
-      Đang kiểm soát thiết bị của <strong>${username}</strong>
-      ${isExpired ? "— <span style='color:var(--red)'>Key hết hạn</span>" : "— PC client sẽ nhận config ngay khi bật"}
+    <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+      <div class="dot ${locked ? "unbound" : isExpired ? "unbound" : "bound"}"></div>
+      <div class="info-text">
+        Đang kiểm soát thiết bị của <strong>${username}</strong>
+        ${locked ? "— <span style='color:var(--red)'>Tài khoản bị khóa</span>" : isExpired ? "— <span style='color:var(--red)'>Key hết hạn</span>" : ""}
+      </div>
     </div>
+    <div id="pc-online-badge"></div>
   `;
   panel.appendChild(infoCard);
+  updatePcOnlineUI();
 
   // ── Feature toggles ────────────────────────────────────────────
   FEATURES.forEach(section => {
@@ -887,14 +930,15 @@ function renderPanel() {
       const isOn = !!config[item.key];
       const row  = document.createElement("div");
       // Khi hết hạn: disable toàn bộ toggle
-      row.className = "toggle-row" + (isExpired ? " disabled-row" : "");
+      const disableRow = isExpired || locked;
+      row.className = "toggle-row" + (disableRow ? " disabled-row" : "");
       row.innerHTML = `
         <div class="toggle-info">
           <span class="toggle-name">${item.name}</span>
           <span class="toggle-desc">${item.desc}</span>
         </div>
         <label class="switch" onclick="event.stopPropagation()">
-          <input type="checkbox" ${isOn ? "checked" : ""} ${isExpired ? "disabled" : ""}
+          <input type="checkbox" ${isOn ? "checked" : ""} ${disableRow ? "disabled" : ""}
             onchange="handleToggle('${item.key}', this.checked)" />
           <span class="slider"></span>
         </label>
@@ -905,8 +949,8 @@ function renderPanel() {
       if (item.key === "AimbotNewEnabled") {
         const delayVal = parseFloat(config.AimbotDelay ?? 0.1).toFixed(2);
         const delayRow = document.createElement("div");
-        const delayDisabled = !config.AimbotNewEnabled || isExpired;
-        delayRow.className = "toggle-row" + (isExpired ? " disabled-row" : "");
+        const delayDisabled = !config.AimbotNewEnabled || isExpired || locked;
+        delayRow.className = "toggle-row" + (disableRow ? " disabled-row" : "");
         delayRow.style.cssText = "flex-direction:column;align-items:flex-start;gap:10px;cursor:default;";
         if (delayDisabled) delayRow.style.opacity = "0.4";
         delayRow.innerHTML = `

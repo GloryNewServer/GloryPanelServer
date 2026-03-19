@@ -217,6 +217,14 @@ EXPIRED_CONFIG = {
     "FixEsp": False, "linePosition": "Top", "last_updated": "",
 }
 
+# Config khi bi khoa: Connect=True, tat ca con lai = False
+LOCKED_CONFIG = {
+    "Connect": True, "AimbotNewEnabled": False, "AimbotDelay": 0.1,
+    "ESPLine": False, "ESPBox2": False, "ESPWukong": False,
+    "ESPInfo": False, "ESPSkeleton": False, "ESPREFRESH": False,
+    "FixEsp": False, "linePosition": "Top", "last_updated": "",
+}
+
 
 def get_or_create_config(user_id: str) -> dict:
     res = supabase.table("configs").select("*").eq("user_id", user_id).execute()
@@ -245,6 +253,16 @@ def touch_user(user_id: str):
     supabase.table("users").update({
         "last_seen": datetime.utcnow().isoformat()
     }).eq("id", user_id).execute()
+
+
+def is_pc_online(last_seen_iso) -> bool:
+    """Tra ve True neu last_seen trong vong 15 giay (PC dang poll)."""
+    if not last_seen_iso:
+        return False
+    dt = _parse_utc(last_seen_iso)
+    if not dt:
+        return False
+    return (datetime.now(timezone.utc) - dt).total_seconds() < 15
 
 
 def attach_expiry(cfg: dict, expiry: dict) -> dict:
@@ -620,14 +638,36 @@ def get_config():
     if not payload:
         return jsonify({"error": "Unauthorized"}), 401
 
+    # Kiem tra is_active + lay last_seen truoc — tra 200 de frontend luon render duoc
+    user_check = supabase.table("users").select(
+        "id, is_active, key_id, last_seen"
+    ).eq("id", payload["user_id"]).execute()
+
+    if not user_check.data:
+        return jsonify({"error": "User not found"}), 404
+
+    u = user_check.data[0]
+    pc_online = is_pc_online(u.get("last_seen"))
+
+    if not u.get("is_active", True):
+        cfg = dict(LOCKED_CONFIG)
+        cfg["_locked"]          = True
+        cfg["_pc_online"]       = pc_online
+        cfg["_expired"]         = False
+        cfg["_is_lifetime"]     = False
+        cfg["_expires_at"]      = None
+        cfg["_remaining_hours"] = None
+        return jsonify(cfg), 200
+
     user, expiry_or_err = check_user_access(payload["user_id"])
     if user is None:
         resp, code = expiry_or_err
         if code == 403:
             body = resp.get_json()
             if body.get("expired"):
-                # Tra config tat het (200) thay vi 403 de frontend render duoc
                 cfg = dict(EXPIRED_CONFIG)
+                cfg["_locked"]          = False
+                cfg["_pc_online"]       = pc_online
                 cfg["_expired"]         = True
                 cfg["_is_lifetime"]     = False
                 cfg["_expires_at"]      = body.get("expires_at")
@@ -638,7 +678,10 @@ def get_config():
 
     touch_user(user["id"])
     cfg = get_or_create_config(payload["user_id"])
-    return jsonify(attach_expiry(cfg, expiry_or_err))
+    result = attach_expiry(cfg, expiry_or_err)
+    result["_locked"]    = False
+    result["_pc_online"] = pc_online
+    return jsonify(result)
 
 
 @app.route("/api/config", methods=["POST"])
@@ -676,13 +719,25 @@ def get_config_by_hwid():
         return jsonify({"error": "Device not registered. Please login first."}), 403
 
     user = user_res.data[0]
+
+    # Luon cap nhat last_seen de web panel biet PC dang online
+    touch_user(user["id"])
+
     if not user.get("is_active", True):
-        return jsonify({"error": "Account suspended"}), 403
+        # Tra 200 + _locked=True thay vi 403 de PC tiep tuc poll, khong bi ngat ket noi
+        cfg = dict(LOCKED_CONFIG)
+        cfg["_locked"]          = True
+        cfg["_expired"]         = False
+        cfg["_is_lifetime"]     = False
+        cfg["_expires_at"]      = None
+        cfg["_remaining_hours"] = None
+        return jsonify(cfg), 200
 
     # Kiem tra han key real-time tu DB
     expiry = get_key_expiry_for_user(user)
     if expiry["is_expired"]:
         cfg = dict(EXPIRED_CONFIG)
+        cfg["_locked"]          = False
         cfg["_expired"]         = True
         cfg["_is_lifetime"]     = False
         cfg["_expires_at"]      = expiry["expires_at"]
@@ -690,9 +745,10 @@ def get_config_by_hwid():
         cfg["_duration_hours"]  = expiry.get("duration_hours")
         return jsonify(cfg)
 
-    touch_user(user["id"])
     cfg = get_or_create_config(user["id"])
-    return jsonify(attach_expiry(cfg, expiry))
+    result = attach_expiry(cfg, expiry)
+    result["_locked"] = False
+    return jsonify(result)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -758,10 +814,12 @@ def bind_hwid():
     if not hwid:
         return jsonify({"error": "Thieu HWID"}), 400
 
-    user_res = supabase.table("users").select("id, hwid").eq("id", payload["user_id"]).single().execute()
+    user_res = supabase.table("users").select("id, hwid, is_active").eq("id", payload["user_id"]).single().execute()
     if not user_res.data:
         return jsonify({"error": "User not found"}), 404
     user = user_res.data
+    if not user.get("is_active", True):
+        return jsonify({"error": "Tai khoan da bi khoa"}), 403
     if user.get("hwid"):
         return jsonify({"error": "Tai khoan da co HWID. Lien he admin de reset neu can."}), 400
 
@@ -791,11 +849,14 @@ def change_username():
         return jsonify({"error": "Username chi gom chu, so va dau _"}), 400
 
     user_res = supabase.table("users").select(
-        "id, username, password_hash"
+        "id, username, password_hash, is_active"
     ).eq("id", payload["user_id"]).single().execute()
     if not user_res.data:
         return jsonify({"error": "User not found"}), 404
     user = user_res.data
+
+    if not user.get("is_active", True):
+        return jsonify({"error": "Tai khoan da bi khoa"}), 403
 
     if not bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
         return jsonify({"error": "Mat khau khong dung"}), 401
@@ -827,11 +888,14 @@ def change_password():
         return jsonify({"error": "Mat khau moi phai co it nhat 6 ky tu"}), 400
 
     user_res = supabase.table("users").select(
-        "id, password_hash"
+        "id, password_hash, is_active"
     ).eq("id", payload["user_id"]).single().execute()
     if not user_res.data:
         return jsonify({"error": "User not found"}), 404
     user = user_res.data
+
+    if not user.get("is_active", True):
+        return jsonify({"error": "Tai khoan da bi khoa"}), 403
 
     if not bcrypt.checkpw(old_password.encode(), user["password_hash"].encode()):
         return jsonify({"error": "Mat khau cu khong dung"}), 401
@@ -866,7 +930,11 @@ def test_db():
         return {"count": len(res.data), "data": res.data}
     except Exception as e:
         return {"error": str(e)}
-
+@app.route("/admin")          # ← THÊM ĐOẠN NÀY
+def admin_page():
+    html_path = os.path.join(os.path.dirname(__file__), "admin.html")
+    with open(html_path, "r", encoding="utf-8") as f:
+        return f.read()
 
 # ════════════════════════════════════════════════════════════════════════════
 #  MAIN
